@@ -1,5 +1,7 @@
-from typing import Literal, Any
+from types import FunctionType
+from typing import Literal, Self, Any
 from inspect import isclass, getframeinfo, stack
+from time import sleep
 
 def is_integer(i):
     try:
@@ -36,7 +38,23 @@ class Gadget:
     
 class Console:
 
-    backslash = '\u005C'
+    BACKSLASH = '\u005C'
+
+    @staticmethod
+    def load(func:FunctionType, *text:str, sep=' ', end='\n', dots:int=4, repeat:int=0):
+        callback:str = None
+        length:int = 0
+        for _i in range(repeat+1):
+            print('\r' + ' ' * (length + dots), end='\r')
+            if callback is None:
+                callback = func(*text, sep=sep, end='')
+                length = len(callback.encode())
+            else:
+                func(*text, sep=sep, end='')
+            for i in range(dots):
+                print('.', end='' if (_i < repeat or i+1 < dots) else end)
+                sleep(1)
+        return callback
 
     @staticmethod
     def log(*text:str, sep=' ', end='\n') -> str:
@@ -49,7 +67,7 @@ class Console:
         _caller = getframeinfo(stack()[1][0])
         text = map(str, text)
         _output = sep.join((
-            f'<{_caller.filename.split(__class__.backslash)[-1]}:{_caller.lineno}>', *text
+            f'<{_caller.filename.split(__class__.BACKSLASH)[-1]}:{_caller.lineno}>', *text
         ))
         print(_output, end=end)
         return _output
@@ -59,7 +77,7 @@ class Console:
         _caller = getframeinfo(stack()[1][0])
         text = map(str, text)
         _output = sep.join((
-            f'\n<{_caller.filename.split(__class__.backslash)[-1]}:{_caller.lineno}>', *text
+            f'\n<{_caller.filename.split(__class__.BACKSLASH)[-1]}:{_caller.lineno}>', *text
         ))
         print(_output, end=end)
         return _output
