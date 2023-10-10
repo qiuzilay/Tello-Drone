@@ -3,13 +3,15 @@ import socket
 import sys
 import time
 from toolbox import Gadget, console
+from os import chdir, path
+from main import CustomFunc as Function
+from main import CommandOverrideException
 
+chdir(path.dirname(path.realpath(__file__)))
 
 host = ''
 port = 9000
 locaddr = (host, port) 
-
-
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -27,7 +29,7 @@ def recv():
             data.decode(encoding="utf-8")
             #print(data.decode(encoding="utf-8"))
         except Exception:
-            console.info("Exit from recv() since an unknown exception was triggered.")
+            console.info("Exit from recv() since an unknown exception was triggered")
             break
 
 def send(cmd:str):
@@ -37,27 +39,15 @@ def send(cmd:str):
     except Exception as _E:
         console.warn(_E)
 
+cmdl = list()
+Function.load(cmdl)
 
-"""def send(cmd:str, delay:int|float=0):
-    delay in seconds
-    try:
-        sock.sendto(cmd.encode(encoding="utf-8"), tello_address)
-        console.log(f"Execute commands: {cmd}, set exec time as {delay} second{'s' if delay > 1 else ''}")
-    except Exception as _E:
-        console.warn(_E)
-
-    time.sleep(delay)"""
-
-"""print ('\r\n\r\nTello Python3 Demo.\r\n')
-
-print ('Tello: command takeoff land flip forward back left right \r\n       up down cw ccw speed speed?\r\n')
-
-print ('end -- quit demo.\r\n')"""
-
+#console.info(*cmdl, sep='\n')
 
 
 recvThread = threading.Thread(target=recv)
 recvThread.start()
+
 
 while True: 
 
@@ -66,15 +56,32 @@ while True:
 
         if not cmd or 'end' in cmd:
             sock.close()
-            console.info("socket was closed.")
+            console.info("Socket was closed")
             break
+
+        if cmd.startswith('/'): # commands trigger
+            
+            match cmd:
+                case '/reload':
+                    Function.load(cmdl)
+                case '/land':
+                    send('land')
+                    raise CommandOverrideException
+                case _:
+                    console.info(f'The command "{cmd[1:]}" was not found')
 
         else:
             send(cmd)
 
     except KeyboardInterrupt:
         sock.close()
-        console.info("socket was closed cause the exception 'KeyboardInterrupt' was triggered.")
+        console.info("Socket was closed cause the exception 'KeyboardInterrupt' was triggered")
         break
 
-console.info("Ending.")
+    except CommandOverrideException:
+        sock.close()
+        console.info("Tello was forced to land cause an overriding command was triggered")
+        console.load(console.info, 'Landing')
+        break
+
+console.info("Ending")

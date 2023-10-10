@@ -1,6 +1,6 @@
 from types import FunctionType
 from typing import Literal, Self, Any
-from inspect import isclass, getframeinfo, stack
+from inspect import isclass, getframeinfo, stack, Traceback
 from time import sleep
 
 def is_integer(i):
@@ -42,12 +42,13 @@ class Console:
 
     @staticmethod
     def load(func:FunctionType, *text:str, sep=' ', end='\n', dots:int=4, repeat:int=0):
+        _caller = getframeinfo(stack()[1][0])
         callback:str = None
         length:int = 0
         for _i in range(repeat+1):
             print('\r' + ' ' * (length + dots), end='\r')
             if callback is None:
-                callback = func(*text, sep=sep, end='')
+                callback = func(*text, sep=sep, end='', caller=_caller)
                 length = len(callback.encode())
             else:
                 func(*text, sep=sep, end='')
@@ -57,29 +58,23 @@ class Console:
         return callback
 
     @staticmethod
-    def log(*text:str, sep=' ', end='\n') -> str:
+    def log(*text:str, sep=' ', end='\n', caller:Traceback=...) -> str:
         _output = sep.join(map(str, text))
         print(_output, end=end)
         return _output
 
-    @staticmethod
-    def info(*text:str, sep=' ', end='\n') -> str:
-        _caller = getframeinfo(stack()[1][0])
-        text = map(str, text)
-        _output = sep.join((
-            f'<{_caller.filename.split(__class__.BACKSLASH)[-1]}:{_caller.lineno}>', *text
-        ))
-        print(_output, end=end)
+    @classmethod
+    def info(cls, *text:str, sep=' ', end='\n', caller:Traceback=...) -> str:
+        _caller = getframeinfo(stack()[1][0]) if not isinstance(caller, Traceback) else caller
+        _output = sep.join(map(str, text))
+        print(f'<{_caller.filename.split(cls.BACKSLASH)[-1]}:{_caller.lineno}>', _output, end=end)
         return _output
 
-    @staticmethod
-    def warn(*text:str, sep=' ', end='\n\n') -> str:
-        _caller = getframeinfo(stack()[1][0])
-        text = map(str, text)
-        _output = sep.join((
-            f'\n<{_caller.filename.split(__class__.BACKSLASH)[-1]}:{_caller.lineno}>', *text
-        ))
-        print(_output, end=end)
+    @classmethod
+    def warn(cls, *text:str, sep=' ', end='\n\n', caller:Traceback=...) -> str:
+        _caller = getframeinfo(stack()[1][0]) if not isinstance(caller, Traceback) else caller
+        _output = sep.join(map(str, text))
+        print(f'\n<{_caller.filename.split(cls.BACKSLASH)[-1]}:{_caller.lineno}>', _output, end=end)
         return _output
 
 console = Console
