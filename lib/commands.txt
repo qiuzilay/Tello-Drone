@@ -1,3 +1,4 @@
-test1 3
-test2 2
-test3 1
+takeoff,, 3
+foward, 30, 5
+up, 10, 3
+land

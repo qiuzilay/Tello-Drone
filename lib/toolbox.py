@@ -1,11 +1,11 @@
 from types import FunctionType
-from typing import Literal, Self, Any
+from typing import Literal, Self, Iterable, Any
 from inspect import isclass, getframeinfo, stack, Traceback
 from time import sleep
 
 def is_integer(i):
     try:
-        float(i)
+        float(i) # @IgnoreException
     except ValueError:
         return False
     else:
@@ -13,7 +13,7 @@ def is_integer(i):
     
 def is_number(i):
     try:
-        float(i)
+        float(i) # @IgnoreException
     except ValueError:
         return False
     else:
@@ -35,6 +35,29 @@ class Gadget:
                 str(x)
             ), txt))
         )
+    
+    @staticmethod
+    def formatter(cmdl:str, split:str=None, strip:str=None) -> tuple:
+        final = list()
+        cmdl = cmdl.split(split)
+        elem:str
+        for elem in cmdl if not isinstance(cmdl, dict) else cmdl.values():
+            elem = elem.strip(strip)
+            match elem.capitalize():
+                case ''|'None': elem = 0
+                case 'True': elem = True
+                case 'False': elem = False
+                case _: elem = (
+                    int(elem)
+                        if is_integer(elem) else
+                    float(elem)
+                        if is_number(elem) else
+                    elem
+                )
+            final.append(elem)
+
+        return tuple(final)
+        ...
     
 class Console:
 
