@@ -1,4 +1,4 @@
-takeoff,, 3
-foward, 30, 5
-up, 10, 3
+takeoff
+speed, 50, 1
+cw, 360, 3
 land

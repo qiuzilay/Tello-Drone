@@ -44,7 +44,7 @@ class Gadget:
         for elem in cmdl if not isinstance(cmdl, dict) else cmdl.values():
             elem = elem.strip(strip)
             match elem.capitalize():
-                case ''|'None': elem = 0
+                case ''|'None': elem = None
                 case 'True': elem = True
                 case 'False': elem = False
                 case _: elem = (
