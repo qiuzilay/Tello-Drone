@@ -2,6 +2,9 @@ from typing import Callable
 from toolbox import Gadget, console
 from time import sleep
 from datetime import datetime
+from threading import Thread
+from os import mkdir
+from os.path import isdir, abspath
 import socket
 import cv2
 
@@ -33,6 +36,7 @@ class Main:
         self.sock: socket.socket # 註記 self.sock 等等會拿到 socket.socket 的類別物件 (寫給 vscode 看的)
         self.stream: cv2.VideoCapture # 註記 self.stream 等等會拿到 cv2.VideoCapture 的物件
         self.power = True # 控制 while 迴圈的開關 (之前因為不知道threading有daemon可以控制同步關閉才加了這東西)
+        self.recording = None # 錄製控制
         self.queue = list() # 指令佇列。Main.load() 讀取的指令都會塞進這裡等待 Main.exec() 處理
         self.sock = const.sock # 在這邊才正式給 self.sock 賦值
         self.stream = const.stream # 拿 cv2.VideoCapture 物件
@@ -139,8 +143,8 @@ class Main:
                     break
 
                 elif userInput.startswith('!'): # commands prefix trigger
-                    
-                    match userInput:
+                    command, *args = Gadget.argsplit(userInput)
+                    match command:
                         case '!test':
                             ...
                         case '!response':
@@ -163,6 +167,13 @@ class Main:
                         case '!stop':
                             self.send('emergency')
                             raise CommandOverrideException # @IgnoreException
+                        case '!record':
+                            self.recording = Thread(
+                                target = self.record,
+                                args = args,
+                                daemon = True
+                            )
+                            self.recording.start()
                         case _:
                             console.info(f'The command "{userInput[1:]}" was not found!', end='\n\n')
 
@@ -192,6 +203,8 @@ class Main:
                 self.sock.close()
                 console.info('Tello was forced to land cause an overriding command was triggered')
                 break
+
+            except Exception as E: console.info(E)
 
     # 將指令發送給無人機
     def send(self, cmdl:str):
@@ -246,6 +259,34 @@ class Main:
             except Exception as _:
                 console.info(_)
     
+    # 擷取一連串的影像資料
+    def record(self, quanty:int=10, intval:int|float=100):
+        state = self.stream.isOpened()
+
+        try:
+            console.info(f'Start collecting several images then pack as an album. (quanty: {quanty} , intval: {intval})')
+            self.stream.open(self.addr.stream) if not state else ...
+            path = None
+            i = 1
+            while True:
+                path = f'../screenshots/album-{i}'
+                if isdir(path):
+                    i += 1
+                else:
+                    mkdir(path)
+                    break
+            for i in range(1, quanty+1):
+                _, frame = self.stream.read() # @IgnoreException
+                assert cv2.imwrite(f'{path}/{i}.jpg', frame), "Failed to save the screeshots"
+                sleep(intval/1000)
+
+        except Exception as E:
+            console.info(E)
+        else:
+            console.info(f'Successfully saved {quanty} {"images" if quanty > 1 else "image"} to {abspath(path)}')
+        finally:
+            self.stream.release() if state is False else ...
+            self.recording = None
 
 class CommandOverrideException(Exception): # 只是一個自定義的例外類別
     

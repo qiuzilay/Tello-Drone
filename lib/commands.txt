@@ -1,4 +1,11 @@
-takeoff
-speed, 50, 1
-cw, 360, 3
-land
+#takeoff
+#speed, 100
+#cw, 90
+#forward, 400
+#cw, 90
+#forward, 400
+#cw, 90
+#forward, 400
+#cw, 90
+#forward, 400
+#land
