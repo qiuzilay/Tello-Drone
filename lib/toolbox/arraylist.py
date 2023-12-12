@@ -49,6 +49,9 @@ class array:
             )
         return f'[{final}]'
 
+    def __repr__(self) -> str:
+        return self.__str__()
+
     def __add__(self, values:Iterable) -> array:
         return self.__class__(*self, *values)
     

@@ -45,7 +45,7 @@ class json(dict):
                     obj[k] = self.__anlys(val)
                 obj = self.__class__(**obj)
             case _ if isinstance(obj, str): ...
-            case _ if isinstance(obj, Sequence):
+            case _ if isinstance(obj, Sequence) and not isinstance(obj, tuple):
                 for i, elem in enumerate(obj): obj[i] = self.__anlys(elem)
             case _ if isinstance(obj, set):
                 for elem in obj:

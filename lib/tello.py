@@ -1,18 +1,16 @@
 import socket
 import cv2
 from threading import Thread
-from pynput import keyboard
 from time import sleep
 from os import chdir, path
-from random import choices
 from typing import Literal
 from toolbox import cmdl, console
 from main import Main
-from speaker import Event
+from listener import Listener
 
 chdir(path.dirname(path.realpath(__file__))) # 設定終端執行位置為此程式所在之資料夾
 
-console.debug = True
+console.debug = False
 mode:Literal['connect', 'simulate'] = 'simulate'
 
 class Tello: ... # 只是變色用
@@ -65,8 +63,7 @@ Tello.load() # 即 Main.load()，載入 "commands.txt" 內設定的指令
 execThread = Thread(target=Tello.execute, daemon=True) # Main.execute() 的執行緒
 execThread.start()
 
-keyListener = keyboard.Listener(on_press=Event.on_press, on_release=Event.on_release)
-keyListener.daemon = True
+keyListener = Thread(target=Listener.execute, daemon=True)
 keyListener.start()
 
 Tello.console() # 由主程式處理(監聽)自終端機輸入的指令

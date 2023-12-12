@@ -43,40 +43,26 @@ class Main:
     # 執行核心
     # (因為 Main.console() 跟 Main.execute() 這部分的功能重疊)
     # (所以把這部分從原先的 Main.execute() 中獨立出來)
-    def _execore(self, cmdl:tuple, caller:Callable, ignore:bool=False):
+    def _execore(self, cmdl:tuple, caller:Callable, ignore:bool=False) -> tuple:
         ###---- valid cmdl -----###
         # (command)               #
         # (command, value)        #
         # (command, value, delay) #
         # (command,, delay)       #
         ###---------------------###
-        args:None
-        class args:
-            command = None
-            value = None
-            delay = None
-        match len(cmdl):
-            case 1:
-                args.command, = cmdl
-            case 2:
-                args.command, args.value = cmdl
-            case 3:
-                args.command, args.value, args.delay = cmdl
-            case _:
-                raise ValueError('illegal number of arguments occurred at Main.execute()')
         
         # print 出準備送出的指令資訊
         console.log(''.center(32, '-'))
         console.info(
-            f"\u2714 {'Loaded' if (caller.__name__.__ne__('console')) else 'Console'} commands: {args.command}",
-            f"- value: {args.value if (args.value) else 'unspecified'}",
-            f"- delay: {args.delay if (args.delay) else 'unspecified'}",
+            f"\u2714 {'Loaded' if (caller.__name__.__ne__('console')) else 'Console'} commands: {cmdl.command}",
+            f"- value: {cmdl.value if (cmdl.value) else 'unspecified'}",
+            f"- delay: {cmdl.delay if (cmdl.delay) else 'unspecified'}",
             f"- from: {caller.__name__}", sep='\n'
         )
         self.response.ignore.append(ignore) # 是否要 self.response 忽略記錄無人機回傳的消息
-        self.send(args.command if (not args.value) else f'{args.command} {args.value}') # 發送指令至無人機
+        self.send(cmdl.command if (not cmdl.value) else f'{cmdl.command} {cmdl.value}') # 發送指令至無人機
 
-        return args
+        return cmdl
 
     # 執行器 (負責處理佇列中的指令)
     def execute(self):
@@ -90,7 +76,7 @@ class Main:
 
             # 把指令送進執行核心內，表明呼叫者是 Main.execute()
             # 最後再捕捉 Main._execore() 回傳的指令參數 (class args)
-            args = self._execore(
+            cmdl = self._execore(
                 cmdl = self.queue[0],
                 caller = self.execute
             )
@@ -102,26 +88,24 @@ class Main:
                         'status:',
                         '\t'f'response: {self.response.msgs} [{len(self.response.msgs)}]',
                         '\t'f'ignore: {self.response.ignore} [{len(self.response.ignore)}]',
-                        sep='\n'
+                        sep='\n', mode='debug'
                     )
                     response = self.response.msgs.shift()
                     ignore = self.response.ignore.shift()
-                    console.info('response:', response, f'[ignore: {ignore}]')
+                    console.info('response:', response, f'[ignore: {ignore}]', mode='debug')
                     
                     if ignore: continue # 自 console 輸入的指令得到的對應回覆，忽略
 
                     # 'error not joystick' 是無人機接收指令時若發生衝突會回傳的訊息
                     if response != 'error not joystick': # 如果無碰撞，進入 if 程式區塊
                         self.queue.shift() # 把佇列中最前面 (當前) 的指令移除
-                        sleep(args.delay) if args.delay else ... # 如果該指令有設定延遲，處理延遲
+                        sleep(cmdl.delay) if cmdl.delay else ... # 如果該指令有設定延遲，處理延遲
                     else:
                         # 發生碰撞，發送訊息。不將指令從佇列中移除
-                        console.info(f'Congestion occurred. Would try to re-execute the command "{args.command}" in 1 seconds')
+                        console.info(f'Congestion occurred. Would try to re-execute the command "{cmdl.command}" in 1 seconds')
                         sleep(1)
 
                     break # 離開此迴圈，回到 Main.execute() 的開頭
-
-                else: sleep(0.1)
 
     # 載入器 (負責讀取'commands.txt'內的指令清單，並存入佇列中)
     def load(self):
@@ -132,7 +116,8 @@ class Main:
 
         console.info(
             f"Command list loaded successfully!",
-            '- ' + self.queue.copy().each(Gadget.visualize).join('\n- ')
+            '- ' + self.queue.copy().each(Gadget.visualize).join('\n- '),
+            sep='\n'
         ) if self.queue else console.info(f'Command list was empty.')
     
     # 終端機輸入監聽器
@@ -250,8 +235,8 @@ class Main:
                 if (cv2.waitKey(16) & 0xFF).__eq__(13):
                     T = datetime.now()
                     path = (
-                        fr'../screenshots/'
-                        fr'{T.year}-{T.month}-{T.day} {T.hour}.{T.minute}.{T.second}.{str(T.microsecond)[0]}.jpg'
+                        fr'../screenshots/' +
+                        T.strftime(r"%Y-%m-%d %H.%M.%S.") + str(T.microsecond)[:3] + '.jpg'
                     )
                     console.info(f'Save screenshots to', path)
                     
