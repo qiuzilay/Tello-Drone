@@ -1,6 +1,6 @@
 from __future__ import annotations
 from inspect import signature, isfunction
-from typing import Iterable, Callable, NewType
+from typing import Iterable, Callable, NewType, Literal, Self
 from sys import version_info
 
 try: from typing import Self
@@ -12,7 +12,7 @@ Numeric = NewType('Numeric', [int, float])
 
 class array:
     
-    def __init__(self, *values) -> Self:
+    def __init__(self, *values):
         
         self.core = list()
         self.iter = 0
@@ -23,7 +23,7 @@ class array:
         return len(self.core)
     
     def __getitem__(self, index:int|slice) -> Self:
-        return self.__class__(self.core[index.start:index.stop:index.step]) if isinstance(index, slice) else self.core[index]
+        return self.__class__(self.core[index.start:index.stop:index.step]) if isinstance(index, slice) else self.core[index] # @IgnoreException
 
     def __setitem__(self, index:int, value):
         self.core[index] = value
@@ -152,3 +152,63 @@ class array:
         if len(array).__eq__(1) and (isinstance(*array, Iterable) and not isinstance(*array, str)):
             array, = array
         return array
+    
+class slider(array):
+    
+    def __init__(self, *values, size:int=..., cull_behavior:Literal['ahead', 'back']='ahead'):
+        super().__init__(*values)
+        self.__cull_behavior = cull_behavior if cull_behavior in ('ahead', 'back') else 'ahead'
+        self.__size = self.length if (size is Ellipsis) else int(size)
+
+    @property
+    def size(self) -> int:
+        return self.__size
+    
+    @size.setter
+    def size(self, value:int):
+        self.__size = value
+        self.__cull__()
+
+    @property
+    def cull_behavior(self):
+        return self.__cull_behavior
+    
+    @cull_behavior.setter
+    def cull_behavior(self, value:Literal['ahead', 'back']):
+        self.__cull_behavior = value if value in ('ahead', 'back') else 'ahead'
+
+    def __push__(self, values:Iterable, orient:Literal['ahead', 'back']='back') -> Self:
+        if orient == 'ahead':
+            for _ in reversed(values):
+                self.core.insert(0, _)
+                self.core.pop() if self.length > self.size else ...
+        else:
+            for _ in values:
+                self.core.append(_)
+                self.core.pop(0) if self.length > self.size else ...
+        return self
+    
+    def __cull__(self):
+        while self.length > self.size: self.core.pop(-1 if self.__cull_behavior.__eq__('back') else 0)
+        return self
+    
+    def __add__(self, values:Iterable) -> Self:
+        return self.__push__(values)
+    
+    def append(self, *args) -> Self:
+        return self.__push__(args)
+    
+    def prepend(self, *args) -> Self:
+        return self.__push__(args, orient='ahead')
+    
+    def concat(self, *args) -> Self:
+        super().concat(*args)
+        return self.__cull__()
+
+    def splice(self, index: int, delcount: int, *args) -> Self:
+        super().splice(index, delcount, *args)
+        return self.__cull__()
+    
+    def extend(self, index: int, delcount: int, *args) -> Self:
+        super().extend(index, delcount, *args)
+        return self.__cull__()

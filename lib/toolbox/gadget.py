@@ -1,6 +1,7 @@
 from __future__ import annotations
 from collections import namedtuple
 from inspect import isclass
+from ctypes import windll
 
 def is_number(_) -> bool:
     try: _ = float(_) # @IgnoreException
@@ -74,3 +75,24 @@ class Gadget:
     def visualize(ntuple:tuple) -> str:
         """a little gadget for namedtuple, displays its key-name with corresponding value conveniently."""
         return ', '.join(map(lambda key: f'{key} = {getattr(ntuple, key)}', ntuple._fields))
+    
+    @staticmethod
+    def setGeometry(width:int=1280, height:int=720, window=...) -> str:
+
+        ratio = windll.shcore.GetScaleFactorForDevice(0)/100
+
+        ## ------------------------------ ##
+        #     1080       864               #
+        #   original -> scaled             #
+        #   original <- scaled (reversed)  #
+        ## ------------------------------ ##
+
+        def scaler(length:int, reversed=False):
+            nonlocal ratio
+            return int(length * ratio) if reversed else int(length / ratio)
+        
+        class viewport:
+            width = scaler(window.winfo_screenwidth(), reversed=True)
+            height = scaler(window.winfo_screenheight(), reversed=True)
+
+        return f'{scaler(width)}x{scaler(height)}+{scaler((viewport.width - width)/2)}+{scaler((viewport.height - height)/2)}'
