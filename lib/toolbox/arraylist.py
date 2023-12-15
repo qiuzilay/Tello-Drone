@@ -136,7 +136,7 @@ class array:
         return int(init) if float(init).is_integer() else float(init)
     
     def copy(self) -> array:
-        return self.__class__(self)
+        return self.__class__(self.core)
     
     def each(self, callback:Callable|type) -> Self:
         if isfunction(callback):
@@ -197,6 +197,9 @@ class slider(array):
     
     def __add__(self, values:Iterable) -> Self:
         return self.__push__(values)
+    
+    def copy(self) -> slider:
+        return self.__class__(self.core)
     
     def append(self, *args) -> Self:
         return self.__push__(args)
