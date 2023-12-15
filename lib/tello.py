@@ -10,7 +10,7 @@ from listener import Listener
 
 chdir(path.dirname(path.realpath(__file__))) # 設定終端執行位置為此程式所在之資料夾
 
-console.debug = False
+console.mode = False
 mode:Literal['connect', 'simulate'] = 'simulate'
 
 class Tello: ... # 只是變色用
@@ -29,18 +29,20 @@ class const: # 常數 (參數) 集。只是為了讓變數可以像 javascript �
     # 沒戳，只是為了美觀 (X
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    stream = cv2.VideoCapture(addr.stream) # 從給定的位址，捕捉影像。因為同樣在 const 內，所以這邊存取 addr 不用打 const
     sock.bind(addr.host)
+    console.info('Trying to connect with default webcam, please wait for a while...')
+    stream = cv2.VideoCapture(addr.stream) # 從給定的位址，捕捉影像。因為同樣在 const 內，所以這邊存取 addr 不用打 const
+    console.info('Successed' if stream.isOpened() else 'Failed to connect your webcam, the function of video stream would not execute during this runtime.')
 
     mode = mode
 
 
-T = 3 # 如果 VideoCapture 捕捉失敗，重新嘗試連線。(雖然如果第一次失敗後面再試幾次極大概率也不會成功啦 030)
+"""T = 3 # 如果 VideoCapture 捕捉失敗，重新嘗試連線。(雖然如果第一次失敗後面再試幾次極大概率也不會成功啦 030)
 for _ in range(T) if not const.stream.isOpened() else ():
     console.info(f'cv2.VideoCapture failed to initialize. {T-_} retrying {"chance" if _ <= 1 else "chances"} left.')
     if const.stream.open(const.addr.stream):
         break
-    else: sleep(1) if (_ + 1 < T) else console.info(f'Failed to initial camera!')
+    else: sleep(1) if (_ + 1 < T) else console.info(f'Failed to initial camera!')"""
 
 # 把參數集送進 main.py 裡面的 Main 類別裡面，創建實例，命名Tello。Main 的所有內容請至 main.py 查看。
 Tello:Main = Main(const)

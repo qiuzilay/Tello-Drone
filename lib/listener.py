@@ -16,7 +16,7 @@ class Listener:
     var = json({
         'trigger': False,
         'process': False,
-        'threshold': 1.5
+        'threshold': 1
     })
 
     @classmethod
@@ -25,13 +25,11 @@ class Listener:
 
     @classmethod
     def on_press(cls, key):
-        if (key == keyboard.Key.ctrl_r):
-            cls.var.trigger = True
+        if not cls.var.trigger and key.__eq__(keyboard.Key.ctrl_r): cls.var.trigger = True
 
     @classmethod
     def on_release(cls, key):
-        if (key == keyboard.Key.ctrl_r):
-            cls.var.trigger = False
+        if cls.var.trigger and key.__eq__(keyboard.Key.ctrl_r): cls.var.trigger = False
 
     @classmethod
     async def monitor(cls):
@@ -55,21 +53,23 @@ class Listener:
     def listener(cls):
         with const.microphone as source:
             while True:
-                console.info('Trigger!')
+                console.info('Voice was detected, now is trying to record it.')
                 const.recognizer.adjust_for_ambient_noise(source)
                 audio = const.recognizer.listen(source)
-                try:
-                    text = const.recognizer.recognize_google(audio, language='zh-tw', show_all=True)
-                except Exception as E:
-                    console.info(E)
+                try: text = const.recognizer.recognize_google(audio, language='zh-tw', show_all=True)
+                except Exception as E: console.info(E)
                 else:
-                    console.info('text:', text)
-                    cls.transcript.append(text['alternative'][0]['transcript']) if text else ...
-        
+                    if text:
+                        transcript = text['alternative'][0]['transcript']
+                        console.debug(transcript)
+                        cls.transcript.append(transcript)
+                    else:
+                        console.info('Failed to transcript your voice-text.')
+
     @classmethod
     def handler(cls):
-        console.info(cls.transcript)
-        cls.transcript = slider(size=3)
+        context, cls.transcript = cls.transcript, slider(size=3)
+        console.debug(context.join(', '))
 
 
 listenThread = Thread(target=Listener.listener, daemon=True)

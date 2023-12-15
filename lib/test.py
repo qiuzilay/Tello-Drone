@@ -1,6 +1,6 @@
-from toolbox import slider, array, console, json
+from toolbox import console
+from re import search
 
-fw = slider(1, 2, 3)
-dir = json(fw, 'Fan', 'gay')
+name = 'fan'
 
-console.info(dir)
+print(console.debug(name))
