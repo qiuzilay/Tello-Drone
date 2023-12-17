@@ -29,10 +29,10 @@ class json(dict):
 
     def __getattr__(self, name:str):
         try: return self[name]
-        except KeyError: raise AttributeError(name)
+        except KeyError: raise AttributeError(name) # @IgnoreException
         
     def __getitem__(self, key:str):
-        return super().__getitem__(key)
+        return super().__getitem__(key) # @IgnoreException
     
     def __setitem__(self, key:str, value):
         return super().__setitem__(key, self.__anlys(value))

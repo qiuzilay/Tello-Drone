@@ -1,7 +1,8 @@
 from types import FunctionType
 from typing import Literal
-from inspect import Traceback, getframeinfo, stack, currentframe
+from inspect import Traceback, getframeinfo, stack
 from traceback import format_stack
+from collections import namedtuple as ntuple
 from time import sleep
 from re import search
 
@@ -16,32 +17,42 @@ class Console:
         cbf:str = None
         length:int = 0
         if mode.__ne__('debug') or cls.mode.__eq__('debug'):
-            for _i in range(repeat+1):
-                print('\r' + ' ' * (length + dots), end='\r')
-                if cbf is None:
+            for loop in range(repeat+1):
+                if not loop:
                     cbf = func(*text, sep=sep, end='', caller=cal)
-                    length = len(cbf.encode())
+                    length = len(' '.join(cbf).encode())                    
                 else:
-                    func(*text, sep=sep, end='')
+                    sleep(1)
+                    print('\r' + ' ' * (length + dots), end='\r')
+                    func(*text, sep=sep, end='', caller=cal)
+
                 for i in range(dots):
                     sleep(1)
-                    print('.', end='' if (_i < repeat or i+1 < dots) else end)
+                    print('.', end='' if (loop < repeat or i+1 < dots) else end, flush=True)
         else:
             cbf = func(*text, sep=sep, end='', caller=cal, mode=mode)
-        return cbf
+        
+        return cbf.result if isinstance(cbf, tuple) else cbf
 
     @classmethod
     def log(cls, *text:str, sep=' ', end='\n', caller:Traceback=..., mode:Literal['debug']=...) -> str:
-        ret = sep.join(map(str, text))
-        print(ret, end=end) if (mode.__ne__('debug') or cls.mode.__eq__('debug')) else ...
-        return ret
+        result = sep.join(map(str, text))
+        print(result, end=end) if (mode.__ne__('debug') or cls.mode.__eq__('debug')) else ...
+        
+        return result
 
     @classmethod
     def info(cls, *text:str, sep=' ', end='\n', caller:Traceback=..., mode:Literal['debug']=...) -> str:
         cal = getframeinfo(stack()[1][0]) if not isinstance(caller, Traceback) else caller
-        ret = sep.join(map(str, text))
-        print(f'<{cal.filename.split(cls.BACKSLASH)[-1]}:{cal.lineno}>', ret, end=end) if (mode.__ne__('debug') or cls.mode.__eq__('debug')) else ...
-        return ret
+        result = sep.join(map(str, text))
+        prefix = f'<{cal.filename.split(cls.BACKSLASH)[-1]}:{cal.lineno}>'
+        print(prefix, result, end=end) if (mode.__ne__('debug') or cls.mode.__eq__('debug')) else ...
+        
+        return (
+            result
+                if not isinstance(caller, Traceback) else 
+            ntuple('callback', ('result', 'prefix'))(result=result, prefix=prefix)
+        )
     
     @classmethod
     def debug(cls, obj:object, end='\n', caller:Traceback=..., mode:Literal['debug']=...):

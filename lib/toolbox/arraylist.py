@@ -109,7 +109,7 @@ class array:
         assert (0 < params < 3), "The callback function can only have at most 1 or 2 parameters only"
         try:
             for index, value in enumerate(self):
-                assert not callback(*(index, value) if params > 1 else (value,))
+                assert not callback(*(index, value) if params > 1 else (value,)) # @IgnoreException
         except AssertionError:
             return True
         else:
@@ -120,7 +120,7 @@ class array:
         assert (0 < params < 3), "The callback function can only have at most 1 or 2 parameters only"
         try:
             for index, value in enumerate(self):
-                assert callback(*(index, value) if params > 1 else (value,))
+                assert callback(*(index, value) if params > 1 else (value,)) # @IgnoreException
         except AssertionError:
             return False
         else:

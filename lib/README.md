@@ -4,3 +4,4 @@ pip install SpeechRecognition
 pip install pocketsphinx
 pip install pyaudio
 pip install pynput
+pip install jieba

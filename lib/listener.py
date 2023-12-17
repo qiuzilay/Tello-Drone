@@ -1,8 +1,7 @@
 from toolbox import slider, json, Enum, console
 from pynput import keyboard
 from threading import Thread
-from time import perf_counter
-from collections import namedtuple
+from movements import Movements
 import speech_recognition as sr
 import asyncio
 
@@ -38,9 +37,9 @@ class Listener:
             while True:
                 await asyncio.sleep(cls.var.threshold)
                 if cls.var.trigger and not cls.var.process:
-                    console.info("Start processing your voice.")
+                    console.info('Start processing your voice-text.')
                     cls.var.process = True
-                    cls.handler()
+                    cls.handler() if cls.transcript else console.info('There is nothing to process.')
                     cls.var.process = False
 
         with keyboard.Listener(on_press=cls.on_press, on_release=cls.on_release) as listener:
@@ -53,7 +52,7 @@ class Listener:
     def listener(cls):
         with const.microphone as source:
             while True:
-                console.info('Voice was detected, now is trying to record it.')
+                console.info('Voice was detected, recording it currently.')
                 const.recognizer.adjust_for_ambient_noise(source)
                 audio = const.recognizer.listen(source)
                 try: text = const.recognizer.recognize_google(audio, language='zh-tw', show_all=True)
@@ -68,8 +67,8 @@ class Listener:
 
     @classmethod
     def handler(cls):
-        context, cls.transcript = cls.transcript, slider(size=3)
-        console.debug(context.join(', '))
+        Movements.execute(cls.transcript.join())
+        cls.transcript = slider(size=3)
 
 
 listenThread = Thread(target=Listener.listener, daemon=True)

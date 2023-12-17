@@ -1,5 +1,6 @@
 import tkinter
 from collections import namedtuple
+from dataclasses import dataclass, field
 from toolbox import Gadget, console
 
 class window: ...
