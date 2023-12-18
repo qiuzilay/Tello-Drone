@@ -1,0 +1,103 @@
+{
+    "position": {
+        "cw": {
+            "associate": ["順"],
+            "priority": 0,
+            "weight": 0
+        },
+        "c-cw": {
+            "associate": ["逆"],
+            "priority": 0,
+            "weight": 0
+        }
+    },
+    "action": {
+        "forward": {
+            "associate": ["前"],
+            "priority": 1,
+            "weight": 0
+        },
+        "backward": {
+            "associate": ["後"],
+            "priority": 1,
+            "weight": 0
+        },
+        "left": {
+            "associate": ["左"],
+            "priority": 1,
+            "weight": 0
+        },
+        "right": {
+            "associate": ["右"],
+            "priority": 1,
+            "weight": 0
+        },
+        "up": {
+            "associate": ["上", "升"],
+            "priority": 0,
+            "weight": 0
+        },
+        "down": {
+            "associate": ["下", "下降", "降低"],
+            "priority": 1,
+            "weight": 0
+        },
+        "return": {
+            "associate": ["迴轉"],
+            "priority": 0,
+            "weight": 0
+        },
+        "hover": {
+            "associate": ["懸停", "盤旋"],
+            "priority": 0,
+            "weight": 0
+        },
+        "brake": {
+            "associate": ["煞車", "暫停"],
+            "priority": 0,
+            "weight": 0
+        },
+        "spin": {
+            "associate": ["旋轉", "轉向"],
+            "priority": 0,
+            "weight": 0
+        },
+        "roll": {
+            "associate": ["翻"],
+            "priority": 0,
+            "weight": 0
+        },
+        "land": {
+            "associate": ["垂降", "降落", "著陸"],
+            "priority": 2,
+            "weight": 0
+        },
+        "f-land": {
+            "associate": ["迫降"],
+            "priority": 0,
+            "weight": 0
+        }
+    },
+    "unit": {
+        "m": {
+            "associate": ["尺", "公尺"],
+            "priority": 0,
+            "weight": 0
+        },
+        "cm": {
+            "associate": ["公分"],
+            "priority": 0,
+            "weight": 0
+        },
+        "deg": {
+            "associate": ["度"],
+            "priority": 0,
+            "weight": 0
+        },
+        "sec": {
+            "associate": ["秒"],
+            "priority": 0,
+            "weight": 0
+        }
+    }
+}

@@ -1,3 +1,6 @@
+from os import chdir
+from os.path import dirname, realpath
+chdir(dirname(realpath(__file__))) if __name__.__eq__('__main__') else ...
 from toolbox import slider, json, Enum, console
 from pynput import keyboard
 from threading import Thread

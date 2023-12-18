@@ -109,7 +109,7 @@ class Main:
 
     # 載入器 (負責讀取'commands.txt'內的指令清單，並存入佇列中)
     def load(self):
-        with open('./commands.txt', mode='r', encoding='UTF-8') as _cmdfile:
+        with open('./configs/commands.txt', mode='r', encoding='UTF-8') as _cmdfile:
             for line in _cmdfile:
                 if not line.startswith('#'):
                     self.queue.append(Gadget.formatter(line, split=','))

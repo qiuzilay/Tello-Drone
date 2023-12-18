@@ -1,15 +1,26 @@
-from toolbox import console, Enum, array, json
-from movements import Movements, Context
+from toolbox import console, Enum, array, json, String
+from json import load
+from os import chdir, getcwd
+from os.path import dirname, realpath
+from dataclasses import dataclass, field
+from movements import Movements
 
+chdir(dirname(realpath(__file__))) if not getcwd().endswith(dirname(realpath(__file__))) else ...
 
+"""with open('./configs/userdict.txt', mode='w', encoding='UTF-8') as ctgfile:
 
+    category = json(load(open('./configs/categories.json', encoding='UTF-8')))
 
-context = ['往前', '飛行', '30', '公尺', '然後', '順時針', '旋轉', '90', '度']
+    console.debug(category)
 
-console.debug(context)
+    get = array()
 
-result = Context(context).filter().standardize()
+    for ctg_name, ctg in category.items():
+        for name, info in ctg.items():
+            for CHI in info.associate:
+                get.append(CHI)
 
-console.debug(result.context.standardize)
+    ctgfile.writelines(get.join('\n'))"""
 
-
+arr = array(['往前', '飛行', '30', '公尺', '然後', '順時針', '旋轉', '90', '度'])
+Movements.execute(arr.join())
