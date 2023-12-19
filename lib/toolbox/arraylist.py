@@ -93,11 +93,11 @@ class array:
     def join(self, sep:str='') -> str:
         return sep.join(map(str, self))
     
-    def shift(self):
-        return self.core.pop(0)
+    def shift(self, index:int=0):
+        return self.core.pop(index)
     
-    def pop(self):
-        return self.core.pop()
+    def pop(self, index:int=-1):
+        return self.core.pop(index)
     
     def filter(self, callback:Callable) -> array:
         params = len(signature(callback).parameters)

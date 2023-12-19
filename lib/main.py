@@ -150,7 +150,7 @@ class Main:
 
                                     for ctg_name, ctg in category.items():
                                         for name, info in ctg.items():
-                                            get.extend(info.associate)
+                                            get.extend(info['associate'])
                                     
                                     get.extend(deprecated)
 
@@ -229,7 +229,7 @@ class Main:
                 console.info(E)
         else:
             sleep(randint(0, 1000)/1000)
-            self.response.value = choices(('Error not joystick', 'OK'), weights=(1/3, 2/3))[0]
+            self.response.value = choices(('Error not joystick', 'OK'), weights=(1/10, 9/10))[0]
             
     # 讀取無人機回傳的影像資料
     def recvideo(self):

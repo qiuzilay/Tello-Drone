@@ -14,7 +14,7 @@ class const(Enum):
 
 class Listener:
 
-    transcript = slider(size=3)
+    transcript = slider(size=2)
     var = json({
         'trigger': False,
         'process': False,
@@ -70,11 +70,7 @@ class Listener:
 
     @classmethod
     def handler(cls):
-        Movements.execute(cls.transcript.join())
-        cls.transcript = slider(size=3)
-
-
-listenThread = Thread(target=Listener.listener, daemon=True)
-listenThread.start()
+        Movements.read(cls.transcript.join())
+        cls.transcript = slider(size=2)
 
 Listener.execute() if __name__.__eq__('__main__') else ...

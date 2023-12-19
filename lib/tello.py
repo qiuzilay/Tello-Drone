@@ -68,6 +68,9 @@ execThread.start()
 keyListener = Thread(target=Listener.execute, daemon=True)
 keyListener.start()
 
+listenThread = Thread(target=Listener.listener, daemon=True)
+listenThread.start()
+
 Tello.console() # 由主程式處理(監聽)自終端機輸入的指令
 
 console.info('Ending') # 主程序終止
