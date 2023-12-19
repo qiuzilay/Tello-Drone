@@ -22,5 +22,6 @@ chdir(dirname(realpath(__file__))) if not getcwd().endswith(dirname(realpath(__f
 
     ctgfile.writelines(get.join('\n'))"""
 
-arr = array(['往前', '飛行', '30', '公尺', '然後', '順時針', '旋轉', '90', '度'])
-Movements.execute(arr.join())
+#arr = array(['往前', '飛行', '30', '公尺', '然後', '順時針', '旋轉', '90', '度'])
+context = '左轉飛行3秒懸停10秒然後降落'
+Movements.execute(context)

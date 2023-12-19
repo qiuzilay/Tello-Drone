@@ -10,13 +10,14 @@ import jieba
 chdir(dirname(realpath(__file__))) if not getcwd().endswith(dirname(realpath(__file__))) else ...
 
 jieba.load_userdict('./configs/userdict.txt')
+with open('./configs/categories.json', encoding='UTF-8') as categories: fetch = json(load(categories))
     
 class Context:
 
     class const(Enum):
 
-        category = json(load(open('./configs/categories.json', encoding='UTF-8')))
-        contains = lambda text, ctg: any((CHI in text) if not isinstance(CHI, tuple) else any(cn in text for cn in CHI) for CHI in ctg)
+        category = fetch.category
+        deprecated = fetch.deprecated
 
     def __init__(self, context:str):
 
@@ -28,39 +29,30 @@ class Context:
 
         self.context = __context_prototype__(source=context)
         
-        (   self.extract()
-                .filter()
-                .standardize()  )
+        self.extract().standardize()
 
     def extract(self):
         self.context.source = jieba.lcut(self.context.source)
-        return self
-    
-    def filter(self):
-        deprecated = ('然後')
-        for i, text in enumerate(self.context.source):
-            if text in deprecated: del self.context.source[i]
         return self
 
     def standardize(self):
 
         class metadata(str):
-                
+
             def __init__(self, *args):
                 super().__init__()
 
-            def config(self, priority:int=..., weight:int=..., category:Literal['position', 'action', 'number', 'unit']=...):
+            def config(self, priority:int=..., weight:int=..., match:str=..., category:Literal['position', 'action', 'number', 'unit']=...):
                 self.priority = priority
                 self.weight = weight
+                self.match = match
                 self.category = category
                 return self
 
-            category: Literal['position', 'action', 'number', 'unit'] = field(default='number')
-            value: str = field(default=None)
-
-        def translator(text) -> metadata:
+        def translator(text) -> metadata | None:
             info = None
-            if any(is_number(chr) for chr in text):
+            if text in self.const.deprecated: return
+            elif any(is_number(chr) for chr in text):
                 info = metadata(search(r'\d+\.?\d*', text).group()).config(
                     priority = 0,
                     weight = 0,
@@ -68,19 +60,18 @@ class Context:
                 )
             else:
                 ctg: json; attr: json
-                for NAME, ctg in __class__.const.category.items():
+                for NAME, ctg in self.const.category.items():
                     for ENG, attr in ctg.items():
                         for CHI in attr.associate:
                             if CHI in text:
                                 info = metadata(ENG).config(
                                     priority = attr.priority,
                                     weight = attr.weight,
+                                    match = CHI,
                                     category = NAME
-                                )
+                                ) if (info is None) or (info.priority < attr.priority) or (len(info.match) < len(CHI)) else info
                                 break
             return info
-
-        category = __class__.const.category
 
         for text in self.context.source:
             info = translator(text)
@@ -114,5 +105,7 @@ class Movements:
 
     @classmethod
     def execute(cls, context:str):
-        cmdl = Context(context).context.metadata
-        console.debug(cmdl)
+        source = Context(context).context.source
+        metadata = Context(context).context.metadata
+        console.debug(source)
+        console.debug(metadata)

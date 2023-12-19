@@ -4,6 +4,7 @@ from time import sleep
 from datetime import datetime
 from threading import Thread
 from random import choices, randint
+from json import load
 from os import mkdir
 from os.path import isdir, abspath
 import socket
@@ -138,6 +139,28 @@ class Main:
                     match command:
                         case '!test':
                             ...
+                        case '!update':
+                            console.info('Start updating the \'userdict.txt\'...')
+                            try:
+                                with open('./configs/userdict.txt', mode='w', encoding='UTF-8') as ctgfile:
+                                    
+                                    fetch = load(open('./configs/categories.json', encoding='UTF-8'))
+                                    category, deprecated = fetch['category'], fetch['deprecated']
+                                    get = list()
+
+                                    for ctg_name, ctg in category.items():
+                                        for name, info in ctg.items():
+                                            get.extend(info.associate)
+                                    
+                                    get.extend(deprecated)
+
+                                    ctgfile.writelines('\n'.join(get))
+
+                            except Exception as E:
+                                console.info(f'Failed to update \'userdict.txt\' caused the exception \'{E}\' was triggered.')
+                            else:
+                                console.info('Successfully updated \'userdict.txt\'')
+
                         case '!response':
                             console.info(self.response.value)
                         case '!frameinfo':
