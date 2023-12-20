@@ -1,12 +1,14 @@
 from os import chdir
 from os.path import dirname, realpath
 chdir(dirname(realpath(__file__))) if __name__.__eq__('__main__') else ...
+
 from toolbox import slider, json, Enum, console
+from dataclasses import dataclass, field
 from pynput import keyboard
 from threading import Thread
 from movements import Movements
+from time import sleep
 import speech_recognition as sr
-import asyncio
 
 class const(Enum):
     microphone = sr.Microphone()
@@ -14,42 +16,46 @@ class const(Enum):
 
 class Listener:
 
-    transcript = slider(size=2)
-    var = json({
-        'trigger': False,
-        'process': False,
-        'threshold': 1
-    })
+    @dataclass
+    class variable:
+        threshold: int | float = 1
+        monitor: Thread | None = None
+        transcript: slider = slider(size=2)
+        keyREC: set = field(default_factory=set)
+
+    var = variable()
 
     @classmethod
     def execute(cls):
-        asyncio.run(cls.monitor())
+        listenThread = Thread(target=cls.listener, daemon=True)
+        listenThread.start()
+
+        with keyboard.Listener(on_press=cls.on_press, on_release=cls.on_release) as keyListener:
+            keyListener.join()
 
     @classmethod
     def on_press(cls, key):
-        if not cls.var.trigger and key.__eq__(keyboard.Key.ctrl_r): cls.var.trigger = True
+        cls.var.keyREC.add(key)
+        if key.__eq__(keyboard.Key.ctrl_r) and cls.var.monitor is None:
+            cls.var.monitor = Thread(target=cls.monitor, daemon=True)
+            cls.var.monitor.start()
 
     @classmethod
     def on_release(cls, key):
-        if cls.var.trigger and key.__eq__(keyboard.Key.ctrl_r): cls.var.trigger = False
+        cls.var.keyREC.add(None)
 
     @classmethod
-    async def monitor(cls):
-
-        async def inspect():
-            while True:
-                await asyncio.sleep(cls.var.threshold)
-                if cls.var.trigger and not cls.var.process:
-                    console.info('Start processing your voice-text.')
-                    cls.var.process = True
-                    cls.handler() if cls.transcript else console.info('There is nothing to process.')
-                    cls.var.process = False
-
-        with keyboard.Listener(on_press=cls.on_press, on_release=cls.on_release) as listener:
-            await asyncio.gather(
-                asyncio.to_thread(listener.join),
-                inspect()
-            )
+    def monitor(cls):
+        sleep(cls.var.threshold)
+        if (None not in cls.var.keyREC) and len(cls.var.keyREC):
+            if cls.var.transcript:
+                console.info('Start processing your voice-text.')
+                cls.handler()
+            else:
+                console.info('There is nothing to process.')
+        
+        cls.var.keyREC.clear()
+        cls.var.monitor = None
 
     @classmethod
     def listener(cls):
@@ -64,13 +70,13 @@ class Listener:
                     if text:
                         transcript = text['alternative'][0]['transcript']
                         console.debug(transcript)
-                        cls.transcript.append(transcript)
+                        cls.var.transcript.append(transcript)
                     else:
                         console.info('Failed to transcript your voice-text.')
 
     @classmethod
     def handler(cls):
-        Movements.read(cls.transcript.join())
-        cls.transcript = slider(size=2)
+        Movements.read(cls.var.transcript.join())
+        cls.var.transcript = slider(size=2)
 
 Listener.execute() if __name__.__eq__('__main__') else ...
