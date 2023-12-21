@@ -36,7 +36,7 @@ class Listener:
     @classmethod
     def on_press(cls, key):
         cls.var.keyREC.add(key)
-        if key.__eq__(keyboard.Key.ctrl_r) and cls.var.monitor is None:
+        if key == keyboard.Key.ctrl_r and cls.var.monitor is None:
             cls.var.monitor = Thread(target=cls.monitor, daemon=True)
             cls.var.monitor.start()
 

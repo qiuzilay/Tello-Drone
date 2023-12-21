@@ -20,7 +20,7 @@ class Context:
         category = fetch.category
         deprecated = fetch.deprecated
 
-    def __init__(self, context:str):
+    def __init__(self, context: str):
 
         @dataclass
         class __context_prototype__:
@@ -43,15 +43,15 @@ class Context:
             def __init__(self, *args):
                 super().__init__()
 
-            def config(self, type:Literal['length', 'scale', 'time']=..., pos:int=..., priority:int=..., weight:int=..., match:str=..., category:Literal['position', 'action', 'value', 'unit']=...):
+            def config(self, group: Literal['length', 'scale', 'time'] = ..., pos: int = ..., priority: int = ..., weight: int = ..., match: str = ..., category: Literal['position', 'action', 'value', 'unit'] = ...):
                 # generic attributes
                 if priority is not Ellipsis: self.priority = priority
                 if weight is not Ellipsis: self.weight = weight
                 if category is not Ellipsis: self.category = category
                 if match is not Ellipsis: self.match = match
 
-                # for unit only
-                if type is not Ellipsis: self.type = type
+                # for action / unit only
+                if group is not Ellipsis: self.group = group
 
                 # for index of each metadata located at self.context.metadata
                 if pos is not Ellipsis: self.pos = pos
@@ -73,19 +73,26 @@ class Context:
                     for ENG, attr in ctg.items():
                         for CHI in attr.associate:
                             if CHI in text:
-                                info = metadata(ENG).config(
-                                    priority = attr.priority,
-                                    weight = attr.weight,
-                                    match = CHI,
-                                    category = CTG
-                                ) if (info is None) or (len(info.match) < len(CHI)) or (info.priority < attr.priority) else info
-                                info.config(type=attr.type) if CTG.__eq__('unit') else ...
-                                break
+                                try:
+                                    assert not (info is None) # @IgnoreException
+                                    assert not (len(info.match) < len(CHI)) # @IgnoreException
+                                    assert not (info.priority < attr.priority) # @IgnoreException
+                                except AssertionError:
+                                    info = metadata(ENG).config(
+                                        priority = attr.priority,
+                                        weight = attr.weight,
+                                        match = CHI,
+                                        category = CTG
+                                    )
+                                    try:
+                                        info.config(group=attr.group) # @IgnoreException
+                                    finally:
+                                        break
+
             return info
 
         for text in self.context.source:
             info = translator(text)
-            #console.info('info:', info, f'<{info.category if info is not None else "NoneType"}>', mode='debug')
             self.context.metadata.append(info.config(pos=self.context.metadata.length)) if info is not None else ...
                         
         return self
@@ -107,10 +114,7 @@ class Context:
             value: array = field(default_factory=array)
             unit: array = field(default_factory=array)
         dataset = dataset()
-        #dataset = self.context.metadata.copy(); prim_len = dataset.length
-        #self.context.final = array(bundle(action=dataset.pop(metadata.pos - prim_len + dataset.length)) for metadata in self.context.metadata if metadata.category.__eq__('action'))
         for metadata in self.context.metadata:
-            console.info(metadata, f'<{metadata.category}>')
             match metadata.category:
                 case 'action': self.context.final.append(bundle(action=metadata, index=self.context.final.length))
                 case 'position': dataset.position.append(metadata)
@@ -120,80 +124,126 @@ class Context:
 
         class window: ...
         class package: ...
+        class scope: ...
+        
         SIZE = 3
-        window:slider = slider(size=SIZE)
+        window: slider = slider(size=SIZE)
+        scope = ntuple('scope', ('left', 'right'))
+
+        @dataclass
+        class property_blueprint:
+            position: object
+            value: object
+
         for package in [None, *self.context.final, None]:
+
             if window.append(package).length < SIZE: continue
-            #index = i - (SIZE - 1)
-            prev, this, next = window
-            scope = ntuple('scope', ('left', 'right'))
             
-            def between(target:Literal['<instance "metadata">']) -> tuple:
+            def between(target: Literal['<object metadata>']) -> tuple:
                 nonlocal prev, this, next
-                if prev is None:
-                    if target.pos < next.action.pos:    
-                        return scope(left=None, right=this) if target.pos < this.action.pos else scope(left=this, right=next)
-                elif next is None:
-                    if prev.action.pos < target.pos:
-                        return scope(left=this, right=None) if this.action.pos < target.pos else scope(left=prev, right=this)
-                elif prev.action.pos < target.pos < next.action.pos:
-                    return scope(left=prev, right=this) if target.pos < this.action.pos else scope(left=this, right=next)
-                
+                if target is not None:
+                    if prev is None:
+                        if target.pos < next.action.pos:    
+                            return scope(left=None, right=this) if target.pos < this.action.pos else scope(left=this, right=next)
+                    elif next is None:
+                        if prev.action.pos < target.pos:
+                            return scope(left=this, right=None) if this.action.pos < target.pos else scope(left=prev, right=this)
+                    elif prev.action.pos < target.pos < next.action.pos:
+                        return scope(left=prev, right=this) if target.pos < this.action.pos else scope(left=this, right=next)
+                    
                 return None
+            
+            def headElement(source: array) -> Literal['<object metadata>']:
+                try: return source[0] # @IgnoreException
+                except IndexError: return None
+
+            def modify_position(obj: Literal['<object metadata>']):
+                obj.position = dataset.position.shift()
+
+            def modify_value(obj: Literal['<object metadata>']):
+                nonlocal suffix
+
+                obj.value = dataset.value.shift()
+
+                try: assert suffix.group == obj.action.group # @IgnoreException
+
+                except (AttributeError, AssertionError):
+                    match obj.action.group:
+                        case 'length': obj.unit = 'cm'
+                        case 'scale': obj.unit = 'deg'
+                        case 'time': obj.unit = 'sec'
+
+                else: obj.unit = suffix
+
+            prev, this, next = window
+
+            target = property_blueprint(
+                position = headElement(dataset.position),
+                value = headElement(dataset.value),
+            )
+            bound = property_blueprint(
+                position = between(target.position),
+                value = between(target.value),
+            )
+            modify = property_blueprint(
+                position = modify_position,
+                value = modify_value
+            )
 
             # 'position'
-            try:
-                target = dataset.position[0]
-                packs = between(target)
-                if packs:
-                    if packs.left is None or packs.right is None:
-                        self.context.final[this.index].position = dataset.position.shift()
-                    else:
-                        if packs.left.position is None:
-                            dist = scope(
-                                left = abs(target.pos - packs.left.action.pos),
-                                right = abs(target.pos - packs.right.action.pos)
-                            )
-                            if dist.left <= dist.right:
-                                packs.left.position = dataset.position.shift()
-                                self.context.final[packs.left.index] = packs.left
-                            else:
-                                packs.right.position = dataset.position.shift()
-                                self.context.final[packs.right.index] = packs.right
+            if bound.position:
+                if bound.position.left is None or bound.position.right is None:
+                    modify.position(this)
+                else:
+                    if bound.position.left.position is None:
+                        dist = scope(
+                            left = abs(target.position.pos - bound.position.left.action.pos),
+                            right = abs(target.position.pos - bound.position.right.action.pos)
+                        )
+                        # 距離相同，右側優先
+                        if dist.left < dist.right:
+                            modify.position(bound.position.left)
                         else:
-                            packs.right.position = dataset.position.shift()
-                            self.context.final[packs.right.index] = packs.right
-            except IndexError: ...
+                            modify.position(bound.position.right)
+                    else:
+                        modify.position(bound.position.right)
 
-
-        """for data in dataset.action.copy().prepend(None):
-            if window.append(data).length < 2: continue
+            try: # expected to fetch 'unit' metadata
+                suffix = self.context.metadata[target.value.pos + 1] # @IgnoreException
+                assert suffix.category.__eq__('unit') # @IgnoreException
+            except (IndexError, AssertionError, AttributeError):
+                suffix = None
             
-            prev, this = window
+            # 'value / unit'
+            if bound.value:
+                
+                if bound.value.left is None or bound.value.right is None:
+                    modify.value(this)
+                else:
+                    if bound.value.left.value is None:
+                        try:
+                            # 有unix -> unix 符合的優先
+                            if suffix is not None:
+                                match = scope(
+                                    left = bound.value.left.action.group == suffix.group,
+                                    right = bound.value.right.action.group == suffix.group
+                                )
+                                assert not (match.left and not match.right), 'left' # @IgnoreException
+                                assert not (match.right and not match.left), 'right' # @IgnoreException
+                                assert not (not match.left and not match.right), 'left' # @IgnoreException
 
-            # 'bundle.action'
-            package:bundle = bundle(action=this)
+                            # unix 都一樣 / 找不到 unix -> 看 weight (left first)
+                            # 數值在前面的 action 應該把 weight 設最高（目前 5）
+                            assert not (bound.value.left.action.weight >= bound.value.right.action.weight), 'left' # @IgnoreException
+                            assert not (bound.value.left.action.weight < bound.value.right.action.weight), 'right' # @IgnoreException
 
-            # 'bundle.position'
-            matched:array[str, ...] = dataset.position.filter(lambda mdata:
-                (mdata.pos < this.pos)
-                    if prev is None else
-                (prev.pos < mdata.pos < this.pos)            
-            )
-            if matched.length: package.position = matched.pop()
 
-            self.context.final.append(package)
-
-        for data in dataset.value:
-            
-            # 'bundle.value'
-            target = None
-            for index, package in enumerate(self.context.final):
-                if package.action.pos > data.pos: break
-                if package.value is None: target = index
-            if target is not None: ..."""
-            
-
+                        except AssertionError as AE:
+                            match str(AE):
+                                case 'left': modify.value(bound.value.left)
+                                case 'right': modify.value(bound.value.right)
+                    else:
+                        modify.value(bound.value.right)
 
             
 
@@ -208,3 +258,4 @@ class Movements:
         console.debug(source)
         console.debug(metadata)
         console.debug(final)
+        for bundle in final: console.viewer(obj=bundle)

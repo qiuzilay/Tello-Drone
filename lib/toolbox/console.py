@@ -5,6 +5,7 @@ from traceback import format_stack
 from collections import namedtuple as ntuple
 from time import sleep
 from re import search
+from dataclasses import asdict
 
 class Console:
 
@@ -91,9 +92,24 @@ class Console:
         print(
             f'<{cal.filename.split(cls.BACKSLASH)[-1]}:{cal.lineno}>',
             f'{varname.group()}: {obj}' if varname is not None else obj, type(obj),
-            end = end
+            end=end
         ) if (mode.__ne__('debug') or cls.mode.__eq__('debug')) else ...
         
+        return obj
+
+    @classmethod
+    def viewer(cls, clsname: str = 'dataclass', obj: Literal['<instance dataclass>'] = None, sep='\n', end='\n', caller: Traceback = ..., mode: Literal['debug'] = ...) -> Literal['<object metadata>']:
+        cal = getframeinfo(stack()[1][0]) if not isinstance(caller, Traceback) else caller
+        if obj is not None:
+            attr = asdict(obj)
+            print(
+                f'<{cal.filename.split(cls.BACKSLASH)[-1]}:{cal.lineno}> (',
+                *map(lambda key: '\t'f'{key}: {attr.get(key)}', attr),
+                f') <instance {clsname}>', sep=sep, end=end
+            ) if (mode.__ne__('debug') or cls.mode.__eq__('debug')) else ...
+        else:
+            print(obj, type(obj), end=end) if (mode.__ne__('debug') or cls.mode.__eq__('debug')) else ...
+
         return obj
 
 console = Console

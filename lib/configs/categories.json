@@ -16,79 +16,79 @@
         "action": {
             "forward": {
                 "associate": ["前"],
-                "units": ["m", "cm"],
+                "group": "length",
                 "priority": 0,
                 "weight": 3
             },
             "backward": {
                 "associate": ["後"],
-                "units": ["m", "cm"],
+                "group": "length",
                 "priority": 0,
                 "weight": 3
             },
             "left": {
                 "associate": ["左"],
-                "units": ["m", "cm"],
+                "group": "length",
                 "priority": 0,
                 "weight": 3
             },
             "right": {
                 "associate": ["右"],
-                "units": ["m", "cm"],
+                "group": "length",
                 "priority": 0,
                 "weight": 3
             },
             "up": {
                 "associate": ["上", "升"],
-                "units": ["m", "cm"],
+                "group": "length",
                 "priority": 0,
                 "weight": 3
             },
             "down": {
                 "associate": ["下", "降"],
-                "units": ["m", "cm"],
+                "group": "length",
                 "priority": 0,
                 "weight": 3
             },
             "return": {
                 "associate": ["迴轉"],
-                "units": null,
+                "group": null,
                 "priority": 0,
                 "weight": 0
             },
             "hover": {
                 "associate": ["停", "盤旋"],
-                "units": ["sec"],
+                "group": "time",
                 "priority": 0,
                 "weight": 3
             },
             "spin": {
                 "associate": ["轉"],
-                "units": ["degree"],
+                "group": "scale",
                 "priority": 0,
-                "weight": 2
+                "weight": 3
             },
             "roll": {
                 "associate": ["翻"],
-                "units": ["degree"],
+                "group": "scale",
                 "priority": 0,
-                "weight": 2
+                "weight": 3
             },
             "land": {
                 "associate": ["垂降", "降落", "著陸"],
-                "units": null,
+                "group": null,
                 "priority": 0,
                 "weight": 0
             },
             "f-land": {
                 "associate": ["迫降"],
-                "units": null,
+                "group": null,
                 "priority": 0,
                 "weight": 0
             },
-            "sec-delay": {
+            "later": {
                 "associate": ["秒後", "延遲", "秒之後"],
-                "units": ["sec"],
+                "group": "time",
                 "priority": 0,
                 "weight": 5
             }
@@ -96,25 +96,25 @@
         "unit": {
             "m": {
                 "associate": ["尺", "公尺"],
-                "type": "length",
+                "group": "length",
                 "priority": 0,
                 "weight": 0
             },
             "cm": {
                 "associate": ["公分"],
-                "type": "length",
+                "group": "length",
                 "priority": 0,
                 "weight": 0
             },
             "deg": {
                 "associate": ["度"],
-                "type": "scale",
+                "group": "scale",
                 "priority": 0,
                 "weight": 0
             },
             "sec": {
                 "associate": ["秒"],
-                "type": "time",
+                "group": "time",
                 "priority": 0,
                 "weight": 0
             }
