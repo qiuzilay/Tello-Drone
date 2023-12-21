@@ -258,4 +258,4 @@ class Movements:
         console.debug(source)
         console.debug(metadata)
         console.debug(final)
-        for bundle in final: console.viewer(obj=bundle)
+        for bundle in final: console.viewer(obj=bundle, suffix='bundle')
