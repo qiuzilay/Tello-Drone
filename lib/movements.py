@@ -1,18 +1,20 @@
 from typing import Literal
-from toolbox import array, slider, json, Enum, is_number, console
+from toolbox import cmdl, array, slider, json, Enum, is_number, console
 from dataclasses import dataclass, field
 from collections import namedtuple as ntuple
 from re import search
 from json import load
 from os import chdir, getcwd
 from os.path import dirname, realpath
+from queue import Queue
 import jieba
 
 chdir(dirname(realpath(__file__))) if not getcwd().endswith(dirname(realpath(__file__))) else ...
 
 jieba.load_userdict('./configs/userdict.txt')
 with open('./configs/categories.json', encoding='UTF-8') as categories: fetch = json(load(categories))
-    
+
+
 class Context:
 
     class const(Enum):
@@ -103,9 +105,9 @@ class Context:
         class bundle:
             index: int
             action: str
-            position: str = field(default=None)
-            value: int | float = field(default=None)
-            unit: str = field(default=None)
+            position: str = None
+            value: int | float = None
+            unit: str = None
 
         @dataclass
         class dataset:
@@ -249,13 +251,45 @@ class Context:
 
 class Movements:
 
+    gloabl_queue: Queue = None
+    ruler = json({
+        "length": {"km": 100000, "m": 100, "cm": 1, "mm": 0.1},
+        "time": {"hour": 3600, "min": 60, "sec": 1, "ms": 0.001}
+    })
+
     @classmethod
     def read(cls, context:str):
-        context = Context(context)
-        source = context.context.source
-        metadata = context.context.metadata
-        final = context.context.final
-        console.debug(source)
-        console.debug(metadata)
-        console.debug(final)
-        for bundle in final: console.viewer(obj=bundle, clsname='bundle')
+        for bundle in Context(context).context.final:
+            if bundle.unit and (bundle.action.group == bundle.unit.group):
+                group = bundle.unit.group
+                match group:
+                    case 'length':
+                        bundle.value /= cls.ruler.length[bundle.unit]
+                        bundle.unit = 'cm'
+                    case 'time':
+                        bundle.value /= cls.ruler.time[bundle.unit]
+                        bundle.unit = 'sec'
+                    case 'scale': ...
+
+            # create cmdl
+            match bundle.action:
+                case 'forward': ...
+                case 'backward': ...
+                case 'left': ...
+                case 'right': ...
+                case 'up': ...
+                case 'down': ...
+                case 'return': ...
+                case 'hover': ...
+                case 'spin': ...
+                case 'roll': ...
+                case 'takeoff':
+                    fetch = cmdl('takeoff', None, None)
+                case 'land':
+                    fetch = cmdl('land', None, None)
+                case 'f-land': ...
+                case 'await': ...
+            
+            cls.gloabl_queue.put(fetch)
+
+            

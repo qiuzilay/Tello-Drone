@@ -10,8 +10,8 @@ from listener import Listener
 
 chdir(path.dirname(path.realpath(__file__))) # 設定終端執行位置為此程式所在之資料夾
 
-console.mode = False
-mode:Literal['connect', 'simulate'] = 'simulate'
+console.mode = 'normal'
+mode:Literal['connect', 'simulate'] = 'connect'
 
 class Tello: ... # 只是變色用
 class const: # 常數 (參數) 集。只是為了讓變數可以像 javascript 的 json 的存取寫法才刻意寫成這樣
@@ -65,7 +65,7 @@ Tello.load() # 即 Main.load()，載入 "commands.txt" 內設定的指令
 execThread = Thread(target=Tello.execute, daemon=True) # Main.execute() 的執行緒
 execThread.start()
 
-keyListener = Thread(target=Listener.execute, daemon=True)
+keyListener = Thread(target=Listener.execute, daemon=True, args=[Tello.gloabl_queue])
 keyListener.start()
 
 Tello.console() # 由主程式處理(監聽)自終端機輸入的指令

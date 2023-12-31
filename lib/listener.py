@@ -8,6 +8,7 @@ from pynput import keyboard
 from threading import Thread
 from movements import Movements
 from time import sleep
+import queue
 import speech_recognition as sr
 
 class const(Enum):
@@ -26,7 +27,10 @@ class Listener:
     var = variable()
 
     @classmethod
-    def execute(cls):
+    def execute(cls, queue):
+
+        Movements.gloabl_queue = queue
+
         listenThread = Thread(target=cls.listener, daemon=True)
         listenThread.start()
 

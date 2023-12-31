@@ -74,6 +74,12 @@
                 "priority": 0,
                 "weight": 3
             },
+            "takeoff": {
+                "associate": ["起飛"],
+                "group": null,
+                "priority": 0,
+                "weight": 0
+            },
             "land": {
                 "associate": ["垂降", "降落", "著陸"],
                 "group": null,
@@ -86,7 +92,7 @@
                 "priority": 0,
                 "weight": 0
             },
-            "later": {
+            "await": {
                 "associate": ["秒後", "延遲", "秒之後"],
                 "group": "time",
                 "priority": 0,
@@ -94,8 +100,14 @@
             }
         },
         "unit": {
+            "km": {
+                "associate": ["公里"],
+                "group": "length",
+                "priority": 0,
+                "weight": 0
+            },
             "m": {
-                "associate": ["尺", "公尺"],
+                "associate": ["尺", "公尺", "米"],
                 "group": "length",
                 "priority": 0,
                 "weight": 0
@@ -106,14 +118,38 @@
                 "priority": 0,
                 "weight": 0
             },
+            "mm": {
+                "associate": ["毫米"],
+                "group": "length",
+                "priority": 0,
+                "weight": 0
+            },
             "deg": {
                 "associate": ["度"],
                 "group": "scale",
                 "priority": 0,
                 "weight": 0
             },
+            "hour": {
+                "associate": ["小時"],
+                "group": "time",
+                "priority": 0,
+                "weight": 0
+            },
+            "min": {
+                "associate": ["分"],
+                "group": "time",
+                "priority": 0,
+                "weight": 0
+            },
             "sec": {
                 "associate": ["秒"],
+                "group": "time",
+                "priority": 0,
+                "weight": 0
+            },
+            "ms": {
+                "associate": ["毫秒"],
                 "group": "time",
                 "priority": 0,
                 "weight": 0

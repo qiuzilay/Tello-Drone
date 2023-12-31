@@ -7,6 +7,7 @@ from random import choices, randint
 from json import load
 from os import mkdir
 from os.path import isdir, abspath
+import queue
 import socket
 import cv2
 import mediapipe
@@ -40,6 +41,7 @@ class Main:
         self.stream:cv2.VideoCapture = const.stream # 拿 cv2.VideoCapture 物件
         self.addr = const.addr # 拿位址集 (class addr)
         self.response = __response_prototype() # 因為 @property 只能用在物件上，所以這邊把 __response_prototype 實例化
+        self.gloabl_queue = queue.Queue()
 
     # 執行核心
     # (因為 Main.console() 跟 Main.execute() 這部分的功能重疊)
@@ -69,9 +71,12 @@ class Main:
     def execute(self):
         while self.power:
             # 如果沒指令佇列，等待一秒後再次進入迴圈
-            if not self.queue:
-                sleep(1)
-                continue
+            try: self.queue.append(self.gloabl_queue.get_nowait()) # @IgnoreException
+            except queue.Empty: ...
+            finally:
+                if not self.queue:
+                    sleep(1)
+                    continue
             
             # 如果執行到這邊代表有指令存在於佇列中，開始處理
 
