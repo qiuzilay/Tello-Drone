@@ -36,12 +36,11 @@ class Main:
         self.power = True # 控制 while 迴圈的開關 (之前因為不知道threading有daemon可以控制同步關閉才加了這東西)
         self.recording = None # 錄製控制
         self.mode: Literal['connect', 'simulate'] = const.mode
-        self.queue = array() # 指令佇列。Main.load() 讀取的指令都會塞進這裡等待 Main.exec() 處理
+        self.queue = queue.Queue() # 指令佇列。Main.load() 讀取的指令都會塞進這裡等待 Main.exec() 處理
         self.sock: socket.socket = const.sock # 拿 socket.socket 物件
         self.stream:cv2.VideoCapture = const.stream # 拿 cv2.VideoCapture 物件
         self.addr = const.addr # 拿位址集 (class addr)
         self.response = __response_prototype() # 因為 @property 只能用在物件上，所以這邊把 __response_prototype 實例化
-        self.gloabl_queue = queue.Queue()
 
     # 執行核心
     # (因為 Main.console() 跟 Main.execute() 這部分的功能重疊)
@@ -69,62 +68,59 @@ class Main:
 
     # 執行器 (負責處理佇列中的指令)
     def execute(self):
+        fetch = None
         while self.power:
-            # 如果沒指令佇列，等待一秒後再次進入迴圈
-            try: self.queue.append(self.gloabl_queue.get_nowait()) # @IgnoreException
-            except queue.Empty: ...
-            finally:
-                if not self.queue:
-                    sleep(1)
-                    continue
+            if fetch is None:
+                try: fetch = self.queue.get() # @IgnoreException
+                except queue.Empty: ...
             
-            # 如果執行到這邊代表有指令存在於佇列中，開始處理
+            try:
+                console.info('Loaded command:', Gadget.visualize(fetch))
+                assert fetch.command is not None # @IgnoreException
 
-            # 把指令送進執行核心內，表明呼叫者是 Main.execute()
-            # 最後再捕捉 Main._execore() 回傳的指令參數 (class args)
-            cmdl = self._execore(
-                cmdl = self.queue[0],
-                caller = self.execute
-            )
+                cmdl = self._execore(
+                    cmdl = fetch,
+                    caller = self.execute
+                )
 
-            # 這段是用來防止指令發生碰撞被吃導致後面的動作大亂而添加的保險
-            while True: # 重複檢測，直到取得來自無人機的回應(response)
-                if self.response.msgs.length:
-                    console.info(
-                        'status:',
-                        '\t'f'response: {self.response.msgs} [{len(self.response.msgs)}]',
-                        '\t'f'ignore: {self.response.ignore} [{len(self.response.ignore)}]',
-                        sep='\n', mode='debug'
-                    )
-                    response = self.response.msgs.shift()
-                    ignore = self.response.ignore.shift()
-                    console.info('response:', response, f'[ignore: {ignore}]', mode='debug')
-                    
-                    if ignore: continue # 自 console 輸入的指令得到的對應回覆，忽略
+                # 這段是用來防止指令發生碰撞被吃導致後面的動作大亂而添加的保險
+                while True: # 重複檢測，直到取得來自無人機的回應(response)
+                    if self.response.msgs.length:
 
-                    # 'error not joystick' 是無人機接收指令時若發生衝突會回傳的訊息
-                    if response != 'error not joystick': # 如果無碰撞，進入 if 程式區塊
-                        self.queue.shift() # 把佇列中最前面 (當前) 的指令移除
-                        sleep(cmdl.delay) if cmdl.delay else ... # 如果該指令有設定延遲，處理延遲
-                    else:
-                        # 發生碰撞，發送訊息。不將指令從佇列中移除
-                        console.info(f'Congestion occurred. Would try to re-execute the command "{cmdl.command}" in 1 seconds')
-                        sleep(1)
+                        response = self.response.msgs.shift()
+                        ignore = self.response.ignore.shift()
 
-                    break # 離開此迴圈，回到 Main.execute() 的開頭
+                        console.info('response:', response, f'[ignore: {ignore}]', mode='debug')
+                        
+                        if ignore: continue
+
+                        if response != 'error not joystick':
+                            fetch = None
+                            sleep(cmdl.delay) if cmdl.delay else ...
+                        else:
+                            console.info(f'Congestion occurred. Would try to re-execute the command "{cmdl.command}" in 1 seconds')
+                            sleep(1)
+
+                        break
+            except AssertionError:
+                sleep(fetch.delay) if fetch.delay else ...
+                fetch = None
 
     # 載入器 (負責讀取'commands.txt'內的指令清單，並存入佇列中)
     def load(self):
+        _ = array()
         with open('./configs/commands.txt', mode='r', encoding='UTF-8') as _cmdfile:
             for line in _cmdfile:
-                if not line.startswith('#'):
-                    self.queue.append(Gadget.formatter(line, split=','))
+                if line.startswith('#'): continue
+                cmdl = Gadget.formatter(line, split=',')
+                _.append(cmdl)
+                self.queue.put_nowait(cmdl)
 
         console.info(
             f"Command list loaded successfully!",
-            '- ' + self.queue.copy().each(Gadget.visualize).join('\n- '),
+            '- ' + _.each(Gadget.visualize).join('\n- '),
             sep='\n'
-        ) if self.queue else console.info(f'Command list was empty.')
+        ) if _ else console.info(f'Command list was empty.')
     
     # 終端機輸入監聽器
     def console(self):
@@ -181,7 +177,7 @@ class Main:
                             console.info('Reload the "commands.txt"')
                             self.load()
                         case '!clear':
-                            self.queue = array()
+                            self.queue.queue.clear()
                             console.info('All commands in the queue were cleared', end='\n\n')
                         case '!stop':
                             self.send('emergency')
@@ -218,7 +214,7 @@ class Main:
             # 使用'!stop'會觸發此例外，終止程式
             except CommandOverrideException:
                 self.power = False
-                self.queue = array()
+                self.queue.queue.clear()
                 self.sock.close()
                 console.info('Tello was forced to land cause an overriding command was triggered')
                 break

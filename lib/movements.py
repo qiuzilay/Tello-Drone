@@ -1,12 +1,12 @@
 from typing import Literal
-from toolbox import cmdl, array, slider, json, Enum, is_number, console
+from toolbox import cmdl, array, slider, json, Enum, Gadget, is_number, console
 from dataclasses import dataclass, field
 from collections import namedtuple as ntuple
 from re import search
 from json import load
 from os import chdir, getcwd
 from os.path import dirname, realpath
-from queue import Queue
+from main import Main
 import jieba
 
 chdir(dirname(realpath(__file__))) if not getcwd().endswith(dirname(realpath(__file__))) else ...
@@ -14,6 +14,25 @@ chdir(dirname(realpath(__file__))) if not getcwd().endswith(dirname(realpath(__f
 jieba.load_userdict('./configs/userdict.txt')
 with open('./configs/categories.json', encoding='UTF-8') as categories: fetch = json(load(categories))
 
+class metadata(str):
+
+    def __init__(self, *args):
+        super().__init__()
+
+    def config(self, group: Literal['length', 'scale', 'time'] = ..., pos: int = ..., priority: int = ..., weight: int = ..., match: str = ..., category: Literal['position', 'action', 'value', 'unit'] = ...):
+        # generic attributes
+        if priority is not Ellipsis: self.priority = priority
+        if weight is not Ellipsis: self.weight = weight
+        if category is not Ellipsis: self.category = category
+        if match is not Ellipsis: self.match = match
+
+        # for action / unit only
+        if group is not Ellipsis: self.group = group
+
+        # for index of each metadata located at self.context.metadata
+        if pos is not Ellipsis: self.pos = pos
+
+        return self
 
 class Context:
 
@@ -39,26 +58,6 @@ class Context:
         return self
 
     def standardize(self):
-
-        class metadata(str):
-
-            def __init__(self, *args):
-                super().__init__()
-
-            def config(self, group: Literal['length', 'scale', 'time'] = ..., pos: int = ..., priority: int = ..., weight: int = ..., match: str = ..., category: Literal['position', 'action', 'value', 'unit'] = ...):
-                # generic attributes
-                if priority is not Ellipsis: self.priority = priority
-                if weight is not Ellipsis: self.weight = weight
-                if category is not Ellipsis: self.category = category
-                if match is not Ellipsis: self.match = match
-
-                # for action / unit only
-                if group is not Ellipsis: self.group = group
-
-                # for index of each metadata located at self.context.metadata
-                if pos is not Ellipsis: self.pos = pos
-
-                return self
 
         def translator(text) -> metadata | None:
             info = None
@@ -170,10 +169,11 @@ class Context:
                 try: assert suffix.group == obj.action.group # @IgnoreException
 
                 except (AttributeError, AssertionError):
+                    global metadata
                     match obj.action.group:
-                        case 'length': obj.unit = 'cm'
-                        case 'scale': obj.unit = 'deg'
-                        case 'time': obj.unit = 'sec'
+                        case 'length': obj.unit = metadata('cm').config(group=obj.action.group)
+                        case 'scale': obj.unit = metadata('deg').config(group=obj.action.group)
+                        case 'time': obj.unit = metadata('sec').config(group=obj.action.group)
 
                 else: obj.unit = suffix
 
@@ -251,7 +251,7 @@ class Context:
 
 class Movements:
 
-    gloabl_queue: Queue = None
+    tello = None
     ruler = json({
         "length": {"km": 100000, "m": 100, "cm": 1, "mm": 0.1},
         "time": {"hour": 3600, "min": 60, "sec": 1, "ms": 0.001}
@@ -259,37 +259,36 @@ class Movements:
 
     @classmethod
     def read(cls, context:str):
+        bundle: metadata
         for bundle in Context(context).context.final:
             if bundle.unit and (bundle.action.group == bundle.unit.group):
-                group = bundle.unit.group
-                match group:
+                if bundle.value is not None: bundle.value = float(bundle.value)
+                match bundle.unit.group:
                     case 'length':
-                        bundle.value /= cls.ruler.length[bundle.unit]
-                        bundle.unit = 'cm'
+                        bundle.value *= cls.ruler.length[bundle.unit]
                     case 'time':
-                        bundle.value /= cls.ruler.time[bundle.unit]
-                        bundle.unit = 'sec'
+                        bundle.value *= cls.ruler.time[bundle.unit]
                     case 'scale': ...
 
             # create cmdl
+            fetch = array()
             match bundle.action:
-                case 'forward': ...
-                case 'backward': ...
-                case 'left': ...
-                case 'right': ...
-                case 'up': ...
-                case 'down': ...
-                case 'return': ...
-                case 'hover': ...
-                case 'spin': ...
+                case 'forward': fetch.append(cmdl('forward', bundle.value, None))
+                case 'backward': fetch.append(cmdl('backward', bundle.value, None))
+                case 'left': fetch.append(cmdl('left', bundle.value, None))
+                case 'right': fetch.append(cmdl('right', bundle.value, None))
+                case 'up': fetch.append(cmdl('up', bundle.value, None))
+                case 'down': fetch.append(cmdl('down', bundle.value, None))
+                case 'return': fetch.append(cmdl('cw', 180, None))
+                case 'spin': fetch.append(cmdl(bundle.position if bundle.position is not None else 'cw', bundle.value, None))
                 case 'roll': ...
-                case 'takeoff':
-                    fetch = cmdl('takeoff', None, None)
-                case 'land':
-                    fetch = cmdl('land', None, None)
-                case 'f-land': ...
-                case 'await': ...
+                case 'takeoff': fetch.append(cmdl('takeoff', bundle.value, None))
+                case 'land': fetch.append(cmdl('land', bundle.value, None))
+                case 'f-land': cls.tello.send('emergency')
+                case 'hover'|'delay': fetch.append(cmdl(None, None, bundle.value))
             
-            cls.gloabl_queue.put(fetch)
+            for _ in fetch:
+                cls.tello.queue.put_nowait(_)
+                console.info('Added command:', Gadget.visualize(_))
 
             

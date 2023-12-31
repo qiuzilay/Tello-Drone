@@ -92,7 +92,7 @@
                 "priority": 0,
                 "weight": 0
             },
-            "await": {
+            "delay": {
                 "associate": ["秒後", "延遲", "秒之後"],
                 "group": "time",
                 "priority": 0,

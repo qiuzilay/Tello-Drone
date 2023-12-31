@@ -6,9 +6,8 @@ from toolbox import slider, json, Enum, console
 from dataclasses import dataclass, field
 from pynput import keyboard
 from threading import Thread
-from movements import Movements
+from movements import Movements, Main
 from time import sleep
-import queue
 import speech_recognition as sr
 
 class const(Enum):
@@ -27,9 +26,9 @@ class Listener:
     var = variable()
 
     @classmethod
-    def execute(cls, queue):
+    def execute(cls, tello):
 
-        Movements.gloabl_queue = queue
+        Movements.tello = tello
 
         listenThread = Thread(target=cls.listener, daemon=True)
         listenThread.start()

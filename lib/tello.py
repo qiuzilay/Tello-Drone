@@ -1,17 +1,15 @@
 import socket
 import cv2
 from threading import Thread
-from time import sleep
 from os import chdir, path
 from typing import Literal
 from toolbox import cmdl, console
-from main import Main
-from listener import Listener
+from listener import Listener, Main
 
 chdir(path.dirname(path.realpath(__file__))) # 設定終端執行位置為此程式所在之資料夾
 
-console.mode = 'normal'
-mode:Literal['connect', 'simulate'] = 'connect'
+console.mode = 'debug'
+mode:Literal['connect', 'simulate'] = 'simulate'
 
 class Tello: ... # 只是變色用
 class const: # 常數 (參數) 集。只是為了讓變數可以像 javascript 的 json 的存取寫法才刻意寫成這樣
@@ -36,14 +34,6 @@ class const: # 常數 (參數) 集。只是為了讓變數可以像 javascript �
 
     mode = mode
 
-
-"""T = 3 # 如果 VideoCapture 捕捉失敗，重新嘗試連線。(雖然如果第一次失敗後面再試幾次極大概率也不會成功啦 030)
-for _ in range(T) if not const.stream.isOpened() else ():
-    console.info(f'cv2.VideoCapture failed to initialize. {T-_} retrying {"chance" if _ <= 1 else "chances"} left.')
-    if const.stream.open(const.addr.stream):
-        break
-    else: sleep(1) if (_ + 1 < T) else console.info(f'Failed to initial camera!')"""
-
 # 把參數集送進 main.py 裡面的 Main 類別裡面，創建實例，命名Tello。Main 的所有內容請至 main.py 查看。
 Tello:Main = Main(const)
 
@@ -53,8 +43,8 @@ recvThread.start() # 開始執行
 
 # 將 command 和 streamon 兩個指令添加進指令隊列，待會供 Main.exec() 執行，為傳給無人機讓其在最一開始時執行。
 # 兩個指令作用請參見 sources 資料夾內的 "Tello SDK 2.0 User Guide.pdf" 內的說明
-Tello.queue.append(cmdl(command='command', value=None, delay=0.1)) # （指令, 指令參數, 延遲秒數）
-Tello.queue.append(cmdl(command='streamon', value=None, delay=0.1))
+Tello.queue.put_nowait(cmdl(command='command', value=None, delay=0.1)) # （指令, 指令參數, 延遲秒數）
+Tello.queue.put_nowait(cmdl(command='streamon', value=None, delay=0.1))
 
 if const.stream.isOpened(): # 如果 cv2.VideoCapture 有成功啟動，才建立接收影像用的執行緒，否則跳過。
     recvideoThread = Thread(target=Tello.recvideo, daemon=True)
@@ -65,7 +55,7 @@ Tello.load() # 即 Main.load()，載入 "commands.txt" 內設定的指令
 execThread = Thread(target=Tello.execute, daemon=True) # Main.execute() 的執行緒
 execThread.start()
 
-keyListener = Thread(target=Listener.execute, daemon=True, args=[Tello.gloabl_queue])
+keyListener = Thread(target=Listener.execute, daemon=True, args=[Tello])
 keyListener.start()
 
 Tello.console() # 由主程式處理(監聽)自終端機輸入的指令
