@@ -87,7 +87,7 @@
                 "weight": 0
             },
             "f-land": {
-                "associate": ["迫降"],
+                "associate": ["迫降", "關機", "熄火"],
                 "group": null,
                 "priority": 0,
                 "weight": 0

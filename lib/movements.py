@@ -6,13 +6,15 @@ from re import search
 from json import load
 from os import chdir, getcwd
 from os.path import dirname, realpath
-from main import Main
+from queue import Queue
 import jieba
 
 chdir(dirname(realpath(__file__))) if not getcwd().endswith(dirname(realpath(__file__))) else ...
 
 jieba.load_userdict('./configs/userdict.txt')
 with open('./configs/categories.json', encoding='UTF-8') as categories: fetch = json(load(categories))
+
+cnsl = Queue()
 
 class metadata(str):
 
@@ -143,7 +145,9 @@ class Context:
             def between(target: Literal['<object metadata>']) -> tuple:
                 nonlocal prev, this, next
                 if target is not None:
-                    if prev is None:
+                    if prev is None and next is None:
+                        return scope(left=None, right=this) if target.pos < this.action.pos else scope(left=this, right=None)
+                    elif prev is None:
                         if target.pos < next.action.pos:    
                             return scope(left=None, right=this) if target.pos < this.action.pos else scope(left=this, right=next)
                     elif next is None:
@@ -247,8 +251,6 @@ class Context:
                     else:
                         modify.value(bound.value.right)
 
-            
-
 class Movements:
 
     tello = None
@@ -261,6 +263,13 @@ class Movements:
     def read(cls, context:str):
         bundle: metadata
         for bundle in Context(context).context.final:
+            console.info(
+                '[object metadata]',
+                f'action: {bundle.action}',
+                f'position: {bundle.position}',
+                f'value: {bundle.value}',
+                f'unit: {bundle.unit}', sep='\n\t'
+            )
             if bundle.unit and (bundle.action.group == bundle.unit.group):
                 if bundle.value is not None: bundle.value = float(bundle.value)
                 match bundle.unit.group:
@@ -284,11 +293,11 @@ class Movements:
                 case 'roll': ...
                 case 'takeoff': fetch.append(cmdl('takeoff', bundle.value, None))
                 case 'land': fetch.append(cmdl('land', bundle.value, None))
-                case 'f-land': cls.tello.send('emergency')
+                case 'f-land': cnsl.put('!stop')
                 case 'hover'|'delay': fetch.append(cmdl(None, None, bundle.value))
             
             for _ in fetch:
-                cls.tello.queue.put_nowait(_)
                 console.info('Added command:', Gadget.visualize(_))
+                cls.tello.queue.put_nowait(_)
 
             

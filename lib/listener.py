@@ -6,7 +6,7 @@ from toolbox import slider, json, Enum, console
 from dataclasses import dataclass, field
 from pynput import keyboard
 from threading import Thread
-from movements import Movements, Main
+from movements import Movements
 from time import sleep
 import speech_recognition as sr
 
@@ -30,17 +30,18 @@ class Listener:
 
         Movements.tello = tello
 
-        listenThread = Thread(target=cls.listener, daemon=True)
+        listenThread = Thread(name='Voice Listener', target=cls.listener, daemon=True)
         listenThread.start()
 
         with keyboard.Listener(on_press=cls.on_press, on_release=cls.on_release) as keyListener:
+            keyListener.name = 'Keyboard Listener'
             keyListener.join()
 
     @classmethod
     def on_press(cls, key):
         cls.var.keyREC.add(key)
         if key == keyboard.Key.ctrl_r and cls.var.monitor is None:
-            cls.var.monitor = Thread(target=cls.monitor, daemon=True)
+            cls.var.monitor = Thread(name='LongPress Detector', target=cls.monitor, daemon=True)
             cls.var.monitor.start()
 
     @classmethod
@@ -63,9 +64,9 @@ class Listener:
     @classmethod
     def listener(cls):
         with const.microphone as source:
+            const.recognizer.adjust_for_ambient_noise(source)
             while True:
                 console.info('Voice was detected, recording it currently.')
-                const.recognizer.adjust_for_ambient_noise(source)
                 audio = const.recognizer.listen(source)
                 try: text = const.recognizer.recognize_google(audio, language='zh-tw', show_all=True)
                 except Exception as E: console.info(E)
@@ -81,5 +82,3 @@ class Listener:
     def handler(cls):
         Movements.read(cls.var.transcript.join())
         cls.var.transcript = slider(size=2)
-
-Listener.execute() if __name__.__eq__('__main__') else ...

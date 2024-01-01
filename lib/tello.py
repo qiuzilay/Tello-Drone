@@ -4,7 +4,8 @@ from threading import Thread
 from os import chdir, path
 from typing import Literal
 from toolbox import cmdl, console
-from listener import Listener, Main
+from listener import Listener
+from main import Main
 
 chdir(path.dirname(path.realpath(__file__))) # 設定終端執行位置為此程式所在之資料夾
 
@@ -38,7 +39,7 @@ class const: # 常數 (參數) 集。只是為了讓變數可以像 javascript �
 Tello:Main = Main(const)
 
 # 創建新執行緒 (多工/並行處理)，執行 Main 下方的 recv() 方法
-recvThread = Thread(target=Tello.recv, daemon=True)
+recvThread = Thread(name='Response Receiver', target=Tello.recv, daemon=True)
 recvThread.start() # 開始執行
 
 # 將 command 和 streamon 兩個指令添加進指令隊列，待會供 Main.exec() 執行，為傳給無人機讓其在最一開始時執行。
@@ -47,17 +48,20 @@ Tello.queue.put_nowait(cmdl(command='command', value=None, delay=0.1)) # （指�
 Tello.queue.put_nowait(cmdl(command='streamon', value=None, delay=0.1))
 
 if const.stream.isOpened(): # 如果 cv2.VideoCapture 有成功啟動，才建立接收影像用的執行緒，否則跳過。
-    recvideoThread = Thread(target=Tello.recvideo, daemon=True)
+    recvideoThread = Thread(name='Frame Receiver',target=Tello.recvideo, daemon=True)
     recvideoThread.start()
 
 Tello.load() # 即 Main.load()，載入 "commands.txt" 內設定的指令
 
-execThread = Thread(target=Tello.execute, daemon=True) # Main.execute() 的執行緒
+execThread = Thread(name='Command Executor', target=Tello.execute, daemon=True) # Main.execute() 的執行緒
 execThread.start()
 
-keyListener = Thread(target=Listener.execute, daemon=True, args=[Tello])
+keyListener = Thread(name='Keyboard EventListener', target=Listener.execute, daemon=True, args=[Tello])
 keyListener.start()
 
-Tello.console() # 由主程式處理(監聽)自終端機輸入的指令
+cnslThread = Thread(name='Console Core', target=Tello.monitor, daemon=True)
+cnslThread.start()
+
+Tello.console() # 由主程式處理自終端機輸入的指令
 
 console.info('Ending') # 主程序終止

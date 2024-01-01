@@ -7,6 +7,7 @@ from random import choices, randint
 from json import load
 from os import mkdir
 from os.path import isdir, abspath
+from movements import cnsl
 import queue
 import socket
 import cv2
@@ -123,11 +124,21 @@ class Main:
         ) if _ else console.info(f'Command list was empty.')
     
     # 終端機輸入監聽器
+    def monitor(self):
+        while self.power:
+            try:
+                cnsl.put(input()) # @IgnoreException
+            
+            # 強制關閉終端機會觸發此例外
+            except (KeyboardInterrupt, EOFError) as E:
+                cnsl.put(E)
+
+    # 終端機指令處理核
     def console(self):
-        while self.power: 
+        while self.power:
 
             try:
-                userInput = input()
+                userInput = cnsl.get() # @IgnoreException
 
                 if not userInput or 'end' in userInput:
                     self.power = False
@@ -139,7 +150,7 @@ class Main:
                     command, *args = Gadget.argsplit(userInput)
                     match command:
                         case '!test':
-                            ...
+                            console.info('test!')
                         case '!update':
                             console.info('Start updating the \'userdict.txt\'...')
                             try:
@@ -184,13 +195,14 @@ class Main:
                             raise CommandOverrideException # @IgnoreException
                         case '!record':
                             self.recording = Thread(
+                                name = 'Recorder',
                                 target = self.record,
                                 args = args,
                                 daemon = True
                             )
                             self.recording.start()
                         case _:
-                            console.info(f'The command "{userInput[1:]}" was not found!', end='\n\n')
+                            console.info(f'The command "{userInput[1:]}" was not found!', end='\n')
 
                 else:
                     # 不是空白，也不是'end'，沒有'!'前墜，那就視為要傳給無人機的指令
@@ -203,14 +215,14 @@ class Main:
                         caller=self.console,
                         ignore=True
                     )
-
+            
             # 強制關閉終端機會觸發此例外，終止程式
-            except KeyboardInterrupt:
+            except (KeyboardInterrupt, EOFError) as E:
                 self.power = False
                 self.sock.close()
-                console.info('Socket was closed cause the exception "KeyboardInterrupt" was triggered')
+                console.info(f'Socket was closed cause the exception "{E.__class__.__name__}" was triggered')
                 break
-            
+
             # 使用'!stop'會觸發此例外，終止程式
             except CommandOverrideException:
                 self.power = False
@@ -220,6 +232,7 @@ class Main:
                 break
 
             except Exception as E: console.info(E)
+
 
     # 將指令發送給無人機
     def send(self, cmdl:str):
