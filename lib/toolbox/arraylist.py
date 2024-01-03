@@ -1,6 +1,6 @@
 from __future__ import annotations
 from inspect import signature, isfunction
-from typing import Iterable, Callable, NewType, Literal, Self
+from typing import Iterable, Callable, NewType, Literal, Sequence
 from sys import version_info
 
 try: from typing import Self
@@ -10,7 +10,7 @@ except ImportError: print('Failed to import class typing.Self caused your Python
 class Numeric: ...
 Numeric = NewType('Numeric', [int, float])
 
-class array:
+class array(Sequence):
     
     def __init__(self, *values):
         

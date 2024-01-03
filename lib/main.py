@@ -190,6 +190,9 @@ class Main:
                         case '!clear':
                             self.queue.queue.clear()
                             console.info('All commands in the queue were cleared', end='\n\n')
+                        case '!land':
+                            self.queue.queue.clear()
+                            self.send('land')
                         case '!stop':
                             self.send('emergency')
                             raise CommandOverrideException # @IgnoreException
@@ -247,20 +250,24 @@ class Main:
             
     # 讀取無人機回傳的影像資料
     def recvideo(self):
+        active = True
+        errcount = 0
 
         def __core_recvideo(MPobj=...):
-            nonlocal self
+            nonlocal self, active, errcount
             try:
                 _, frame = self.stream.read() # @IgnoreException
 
                 MPipe.drawing.draw_landmarks(
                     frame,
-                    MPobj.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)).pose_landmarks,
+                    MPobj.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)).pose_landmarks, # @IgnoreException
                     MPipe.holistic.POSE_CONNECTIONS,
                     landmark_drawing_spec = MPipe.drawing_styles.get_default_pose_landmarks_style()
                 ) if MPobj is not Ellipsis else ...
 
             except Exception as E:
+                errcount += 1
+                if errcount > 5: active = False
                 console.info(E)
             else:
                 cv2.imshow('Tello', frame)
@@ -281,7 +288,7 @@ class Main:
 
             finally: ...
 
-        while self.power:
+        while active:
             try:
                 with MPipe.holistic.Holistic( # @IgnoreException
                     min_detection_confidence = 0.5,

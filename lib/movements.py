@@ -36,6 +36,14 @@ class metadata(str):
 
         return self
 
+@dataclass
+class bundle:
+    index: int
+    action: str
+    position: str = None
+    value: int | float = None
+    unit: str = None
+
 class Context:
 
     class const(Enum):
@@ -101,14 +109,7 @@ class Context:
         return self
     
     def bind(self):
-
-        @dataclass
-        class bundle:
-            index: int
-            action: str
-            position: str = None
-            value: int | float = None
-            unit: str = None
+        global bundle
 
         @dataclass
         class dataset:
@@ -116,14 +117,49 @@ class Context:
             position: array = field(default_factory=array)
             value: array = field(default_factory=array)
             unit: array = field(default_factory=array)
+
         dataset = dataset()
-        for metadata in self.context.metadata:
-            match metadata.category:
-                case 'action': self.context.final.append(bundle(action=metadata, index=self.context.final.length))
-                case 'position': dataset.position.append(metadata)
-                case 'value': dataset.value.append(metadata)
-                case 'unit': dataset.unit.append(metadata)
-                case _: raise Exception(f'Unexpected Exception occurred caused by Context.context.metadata owns illegal category attribute: {metadata.category}')
+        data: metadata
+        for data in self.context.metadata:
+            match data.category:
+                case 'action': self.context.final.append(bundle(action=data, index=self.context.final.length))
+                case 'position': dataset.position.append(data)
+                case 'value': dataset.value.append(data)
+                case 'unit': dataset.unit.append(data)
+                case _: raise Exception(f'Unexpected Exception occurred caused by Context.context.metadata owns illegal category attribute: {data.category}')
+        
+        this: bundle
+        _remove: set = set()
+        for i, this in enumerate(self.context.final):
+            if this.action.priority:
+                try:
+                    prev = next = None
+                    try:
+                        prev: bundle = self.context.final[i-1] # @IgnoreException
+                        assert (prev.action.priority + this.action.priority) and (prev.position is None), 'prev' # @IgnoreException
+                    except IndexError: ...
+                    try:
+                        next: bundle = self.context.final[i+1] # @IgnoreException
+                        assert (next.action.priority + this.action.priority) and (next.position is None), 'next' # @IgnoreException
+                    except IndexError: ...
+                except AssertionError as E:
+                    match str(E):
+                        case 'prev':
+                            if this.action.priority < prev.action.priority:
+                                prev.position = this.action
+                                _remove.add(this.index)
+                            else:
+                                this.position = prev.action
+                                _remove.add(prev.index)
+                        case 'next':
+                            if this.action.priority < next.action.priority:
+                                next.position = this.action
+                                _remove.add(this.index)
+                            else:
+                                this.position = next.action
+                                _remove.add(next.index)
+        
+        self.context.final = self.context.final.filter(lambda i, _: i not in _remove)
 
         class window: ...
         class package: ...
@@ -162,10 +198,10 @@ class Context:
                 try: return source[0] # @IgnoreException
                 except IndexError: return None
 
-            def modify_position(obj: Literal['<object metadata>']):
+            def set_position(obj: Literal['<object metadata>']):
                 obj.position = dataset.position.shift()
 
-            def modify_value(obj: Literal['<object metadata>']):
+            def set_value(obj: Literal['<object metadata>']):
                 nonlocal suffix
 
                 obj.value = dataset.value.shift()
@@ -180,7 +216,8 @@ class Context:
                         case 'time': obj.unit = metadata('sec').config(group=obj.action.group)
 
                 else: obj.unit = suffix
-
+            
+            prev: bundle; this: bundle; next: bundle
             prev, this, next = window
 
             target = property_blueprint(
@@ -192,8 +229,8 @@ class Context:
                 value = between(target.value),
             )
             modify = property_blueprint(
-                position = modify_position,
-                value = modify_value
+                position = set_position,
+                value = set_value
             )
 
             # 'position'
@@ -282,14 +319,23 @@ class Movements:
             # create cmdl
             fetch = array()
             match bundle.action:
-                case 'forward': fetch.append(cmdl('forward', bundle.value, None))
-                case 'backward': fetch.append(cmdl('backward', bundle.value, None))
-                case 'left': fetch.append(cmdl('left', bundle.value, None))
-                case 'right': fetch.append(cmdl('right', bundle.value, None))
-                case 'up': fetch.append(cmdl('up', bundle.value, None))
-                case 'down': fetch.append(cmdl('down', bundle.value, None))
+                case ('forward'|'backward'|'left'|'right'|'up'|'down'):
+                    value = max(min(bundle.value, 500), 20)
+                    match bundle.action:
+                        case 'forward': fetch.append(cmdl('forward', value, None))
+                        case 'backward': fetch.append(cmdl('backward', value, None))
+                        case 'left': fetch.append(cmdl('left', value, None))
+                        case 'right': fetch.append(cmdl('right', value, None))
+                        case 'up': fetch.append(cmdl('up', value, None))
+                        case 'down': fetch.append(cmdl('down', value, None))
+                case 'spin':
+                    fetch.append(cmdl(
+                        bundle.position if bundle.position is not None else 'cw',
+                        bundle.value % 360,
+                        None
+                    ))
+                case 'flip': fetch.append(cmdl(bundle.position, bundle.value, None))
                 case 'return': fetch.append(cmdl('cw', 180, None))
-                case 'spin': fetch.append(cmdl(bundle.position if bundle.position is not None else 'cw', bundle.value, None))
                 case 'roll': ...
                 case 'takeoff': fetch.append(cmdl('takeoff', bundle.value, None))
                 case 'land': fetch.append(cmdl('land', bundle.value, None))

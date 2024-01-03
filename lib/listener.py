@@ -41,7 +41,7 @@ class Listener:
     def on_press(cls, key):
         cls.var.keyREC.add(key)
         if key == keyboard.Key.ctrl_r and cls.var.monitor is None:
-            cls.var.monitor = Thread(name='LongPress Detector', target=cls.monitor, daemon=True)
+            cls.var.monitor = Thread(name='Transcript Handler', target=cls.monitor, daemon=True)
             cls.var.monitor.start()
 
     @classmethod

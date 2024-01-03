@@ -7,7 +7,7 @@
                 "priority": 0,
                 "weight": 0
             },
-            "c-cw": {
+            "ccw": {
                 "associate": ["逆"],
                 "priority": 0,
                 "weight": 0
@@ -17,25 +17,25 @@
             "forward": {
                 "associate": ["前"],
                 "group": "length",
-                "priority": 0,
+                "priority": -1,
                 "weight": 3
             },
             "backward": {
                 "associate": ["後"],
                 "group": "length",
-                "priority": 0,
+                "priority": -1,
                 "weight": 3
             },
             "left": {
                 "associate": ["左"],
                 "group": "length",
-                "priority": 0,
+                "priority": -1,
                 "weight": 3
             },
             "right": {
                 "associate": ["右"],
                 "group": "length",
-                "priority": 0,
+                "priority": -1,
                 "weight": 3
             },
             "up": {
@@ -97,6 +97,12 @@
                 "group": "time",
                 "priority": 0,
                 "weight": 5
+            },
+            "flip": {
+                "associate": ["翻"],
+                "group": null,
+                "priority": 1,
+                "weight": 0
             }
         },
         "unit": {
