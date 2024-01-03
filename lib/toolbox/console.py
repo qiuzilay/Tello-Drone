@@ -3,14 +3,31 @@ from typing import Literal
 from inspect import Traceback, getframeinfo, stack
 from traceback import format_stack
 from collections import namedtuple as ntuple
+from dataclasses import dataclass, field
 from time import sleep
 from re import search
 from dataclasses import asdict
+from threading import Thread
+from queue import Queue
+
+class awaited:
+    
+    def __init__(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+
 
 class Console:
 
     BACKSLASH = '\u005C'
     mode:Literal['normal', 'debug'] = 'debug'
+    queue = Queue()
+
+    @classmethod
+    def _queue_(cls):
+        while True:
+            fetch: awaited = cls.queue.get()
+            print(*fetch.args, **fetch.kwargs)
 
     @classmethod
     def load(cls, func:FunctionType, *text:str, sep=' ', end='\n', dots:int=4, repeat:int=0, mode:Literal['debug']=...):
@@ -38,7 +55,9 @@ class Console:
     @classmethod
     def log(cls, *text:str, sep=' ', end='\n', caller:Traceback=..., mode:Literal['debug']=...) -> str:
         result = sep.join(map(str, text))
-        print(result, end=end) if (mode.__ne__('debug') or cls.mode.__eq__('debug')) else ...
+
+        if (mode.__ne__('debug') or cls.mode.__eq__('debug')):
+            cls.queue.put_nowait(awaited(result, end=end))
         
         return result
 
@@ -47,7 +66,9 @@ class Console:
         cal = getframeinfo(stack()[1][0]) if not isinstance(caller, Traceback) else caller
         result = sep.join(map(str, text))
         prefix = f'<{cal.filename.split(cls.BACKSLASH)[-1]}:{cal.lineno}>'
-        print(prefix, result, end=end) if (mode.__ne__('debug') or cls.mode.__eq__('debug')) else ...
+        
+        if (mode.__ne__('debug') or cls.mode.__eq__('debug')):
+            cls.queue.put_nowait(awaited(prefix, result, end=end))
         
         return (
             result
@@ -89,11 +110,12 @@ class Console:
                         break
 
         cal = getframeinfo(stack()[1][0]) if not isinstance(caller, Traceback) else caller
-        print(
+        
+        cls.queue.put_nowait(awaited(
             f'<{cal.filename.split(cls.BACKSLASH)[-1]}:{cal.lineno}>',
             f'{varname.group()}: {obj}' if varname is not None else obj, type(obj),
             end=end
-        ) if (mode.__ne__('debug') or cls.mode.__eq__('debug')) else ...
+        )) if (mode.__ne__('debug') or cls.mode.__eq__('debug')) else ...
         
         return obj
 
@@ -102,14 +124,16 @@ class Console:
         cal = getframeinfo(stack()[1][0]) if not isinstance(caller, Traceback) else caller
         if obj is not None:
             attr = asdict(obj)
-            print(
+            cls.queue.put_nowait(awaited(
                 f'<{cal.filename.split(cls.BACKSLASH)[-1]}:{cal.lineno}> (',
                 *map(lambda key: '\t'f'{key}: {attr.get(key)}', attr),
                 f') <instance {clsname}>', sep=sep, end=end
-            ) if (mode.__ne__('debug') or cls.mode.__eq__('debug')) else ...
+            )) if (mode.__ne__('debug') or cls.mode.__eq__('debug')) else ...
         else:
-            print(obj, type(obj), end=end) if (mode.__ne__('debug') or cls.mode.__eq__('debug')) else ...
+            cls.queue.put_nowait(awaited(obj, type(obj), end=end)) if (mode.__ne__('debug') or cls.mode.__eq__('debug')) else ...
 
         return obj
+
+Thread(target=Console._queue_, name='Console Queue', daemon=True).start()
 
 console = Console

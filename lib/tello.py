@@ -7,10 +7,10 @@ from toolbox import cmdl, console
 from listener import Listener
 from main import Main
 
-chdir(path.dirname(path.realpath(__file__))) # 設定終端執行位置為此程式所在之資料夾
+chdir(path.dirname(path.realpath(__file__)))
 
 console.mode = 'debug'
-mode:Literal['connect', 'simulate'] = 'simulate'
+mode: Literal['connect', 'simulate'] = 'connect'
 
 class Tello: ...
 class const:
@@ -24,9 +24,9 @@ class const:
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(addr.host)
-    console.info('Trying to connect with default webcam, please wait for a while...')
-    stream = cv2.VideoCapture(addr.stream)
-    console.info('Successed' if stream.isOpened() else 'Failed to connect your webcam, the function of video stream would not execute during this runtime.')
+    #console.info('Trying to connect with default webcam, please wait for a while...')
+    stream = ... #cv2.VideoCapture(addr.stream)
+    #console.info('Successed' if stream.isOpened() else 'Failed to connect your webcam, the function of video stream would not execute during this runtime.')
 
     mode = mode
 
@@ -38,7 +38,7 @@ recvThread.start()
 Tello.queue.put_nowait(cmdl(command='command', value=None, delay=0.1)) # （指令, 指令參數, 延遲秒數）
 Tello.queue.put_nowait(cmdl(command='streamon', value=None, delay=0.1))
 
-if const.stream.isOpened():
+if False: #const.stream.isOpened():
     recvideoThread = Thread(name='Frame Receiver',target=Tello.recvideo, daemon=True)
     recvideoThread.start()
 

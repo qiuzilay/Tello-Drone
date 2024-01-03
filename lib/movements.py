@@ -319,22 +319,37 @@ class Movements:
             # create cmdl
             fetch = array()
             match bundle.action:
-                case ('forward'|'backward'|'left'|'right'|'up'|'down'):
-                    value = max(min(bundle.value, 500), 20)
+                case ('forward'|'back'|'left'|'right'|'up'|'down'):
+                    value = max(min(bundle.value if bundle.value is not None else 0, 500), 20)
                     match bundle.action:
                         case 'forward': fetch.append(cmdl('forward', value, None))
-                        case 'backward': fetch.append(cmdl('backward', value, None))
+                        case 'back': fetch.append(cmdl('back', value, None))
                         case 'left': fetch.append(cmdl('left', value, None))
                         case 'right': fetch.append(cmdl('right', value, None))
                         case 'up': fetch.append(cmdl('up', value, None))
                         case 'down': fetch.append(cmdl('down', value, None))
+                        
                 case 'spin':
                     fetch.append(cmdl(
                         bundle.position if bundle.position is not None else 'cw',
                         bundle.value % 360,
                         None
                     ))
-                case 'flip': fetch.append(cmdl(bundle.position, bundle.value, None))
+
+                case 'flip':
+                    match bundle.position:
+                        case 'forward':
+                            orient = 'f'
+                        case 'back':
+                            orient = 'b'
+                        case 'left':
+                            orient = 'l'
+                        case 'right':
+                            orient = 'r'
+                        case _:
+                            orient = 'b'
+                    fetch.append(cmdl('flip', orient, None))
+
                 case 'return': fetch.append(cmdl('cw', 180, None))
                 case 'roll': ...
                 case 'takeoff': fetch.append(cmdl('takeoff', bundle.value, None))

@@ -20,7 +20,7 @@
                 "priority": -1,
                 "weight": 3
             },
-            "backward": {
+            "back": {
                 "associate": ["後"],
                 "group": "length",
                 "priority": -1,
